@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TRACK_COUNT, Track, Page, MAX_PAGES, newPage, audioSlot } from './types';
+import { TRACK_COUNT, Track, Page, MAX_PAGES, newPage, audioSlot, AppSettings, DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY } from './types';
 import { Device } from './ui/Device';
+import { Settings } from './ui/Settings';
 import { AudioEngine } from './audio/engine';
 import { MidiHost } from './midi/devices';
 import { MidiRouter } from './midi/router';
@@ -28,7 +29,25 @@ export function App() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [midiDeviceName, setMidiDeviceName] = useState<string | null>(null);
 
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    try {
+      const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+    } catch { return DEFAULT_SETTINGS; }
+  });
+  const settingsRef = useRef(settings);
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const saveSettings = useCallback((s: AppSettings) => {
+    setSettings(s);
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(s));
+  }, []);
+
   const [playingTracks, setPlayingTracks] = useState<Set<number>>(new Set());
+  const playingTracksRef = useRef(playingTracks);
+  useEffect(() => { playingTracksRef.current = playingTracks; }, [playingTracks]);
   const [stripFlash, setStripFlash] = useState<Record<number, StripFlash>>({});
   const [transportFlash, setTransportFlash] = useState<TransportFlash>({});
 
@@ -111,21 +130,15 @@ export function App() {
     const engine = engineRef.current!;
     const pi = currentPageIndexRef.current;
     const aSlot = audioSlot(pi, slot);
-    setPlayingTracks((prev) => {
-      if (prev.has(slot)) {
-        engine.pauseTrack(aSlot);
-        const n = new Set(prev);
-        n.delete(slot);
-        return n;
-      } else {
-        void engine.playTrack(aSlot, () => {
-          setPlayingTracks((s) => { const n = new Set(s); n.delete(slot); return n; });
-        });
-        const n = new Set(prev);
-        n.add(slot);
-        return n;
-      }
-    });
+    if (playingTracksRef.current.has(aSlot)) {
+      engine.pauseTrack(aSlot, settingsRef.current.fadeOutDuration);
+      setPlayingTracks((prev) => { const n = new Set(prev); n.delete(aSlot); return n; });
+    } else {
+      void engine.playTrack(aSlot, () => {
+        setPlayingTracks((s) => { const n = new Set(s); n.delete(aSlot); return n; });
+      });
+      setPlayingTracks((prev) => { const n = new Set(prev); n.add(aSlot); return n; });
+    }
   }, []);
 
   const onToggleCycle = useCallback(() => setCycle((c) => !c), []);
@@ -145,22 +158,22 @@ export function App() {
     engineRef.current!.setOnEnded(() => setPlaying(false));
   }, []);
 
+  // Listen for native File > Settings menu item
+  useEffect(() => {
+    const off = window.miditrack.onOpenSettings(() => setSettingsOpen(true));
+    return off;
+  }, []);
+
   // Page navigation
   const onPrevPage = useCallback(() => {
-    engineRef.current!.stopAllPerTrack();
-    setPlayingTracks(new Set());
     setCurrentPageIndex((i) => Math.max(0, i - 1));
   }, []);
 
   const onNextPage = useCallback(() => {
-    engineRef.current!.stopAllPerTrack();
-    setPlayingTracks(new Set());
     setCurrentPageIndex((i) => Math.min(pagesRef.current.length - 1, i + 1));
   }, []);
 
   const onAddPage = useCallback(() => {
-    engineRef.current!.stopAllPerTrack();
-    setPlayingTracks(new Set());
     setPages((prev) => {
       if (prev.length >= MAX_PAGES) return prev;
       const next = [...prev, newPage(prev.length)];
@@ -174,7 +187,11 @@ export function App() {
     const engine = engineRef.current!;
     engineRef.current!.stop();
     setPlaying(false);
-    setPlayingTracks(new Set());
+    setPlayingTracks((prev) => {
+      const n = new Set(prev);
+      for (let s = 0; s < TRACK_COUNT; s++) n.delete(audioSlot(pi, s));
+      return n;
+    });
     setPages((prev) => {
       const next = [...prev];
       const page = next[pi];
@@ -334,7 +351,16 @@ export function App() {
       <div className="app__title">
         <img src="./icon.png" alt="" className="app__title-icon" />
         <span>MidiTracks</span>
+        <button className="app__gear-btn" onClick={() => setSettingsOpen(true)} title="Settings">⚙</button>
       </div>
+
+      {settingsOpen && (
+        <Settings
+          settings={settings}
+          onSave={saveSettings}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
 
       <Device
         tracks={currentTracks}

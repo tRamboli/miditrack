@@ -1,3 +1,13 @@
+export type AppSettings = {
+  fadeOutDuration: number; // seconds; 0 = instant
+};
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  fadeOutDuration: 6
+};
+
+export const SETTINGS_STORAGE_KEY = 'miditrack-settings';
+
 export type Track = {
   id: string;
   slot: number;

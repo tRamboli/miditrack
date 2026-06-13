@@ -27,6 +27,8 @@ export class AudioEngine {
   private ptPans = new Map<number, StereoPannerNode>();
   private ptOffsets = new Map<number, number>();
   private ptStartTimes = new Map<number, number>();
+  // Slots currently mid-fade-pause (source still alive, offset already recorded)
+  private ptFading = new Set<number>();
 
   constructor() {
     this.ctx = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
@@ -63,11 +65,8 @@ export class AudioEngine {
     this.recomputeAnySolo();
 
     const now = this.ctx.currentTime;
-    // Recompute every effective gain because a solo toggle on one strip
-    // changes the gain on every other strip.
     for (const s of this.gains.keys()) {
-      const g = this.gains.get(s)!;
-      g.gain.setTargetAtTime(this.effectiveGain(s), now, 0.01);
+      this.gains.get(s)!.gain.setTargetAtTime(this.effectiveGain(s), now, 0.01);
     }
     const pan = this.pans.get(slot);
     if (pan) pan.pan.setTargetAtTime(next.pan, now, 0.01);
@@ -105,7 +104,7 @@ export class AudioEngine {
     if (!buffer) return;
     if (this.ctx.state === 'suspended') await this.ctx.resume();
 
-    // Clean up any existing per-track source for this slot without resetting offset
+    // Stop any existing source (including mid-fade ones) without resetting offset
     this.cleanupPtSource(slot);
 
     const p = this.params.get(slot) ?? { ...DEFAULT_PARAMS };
@@ -130,15 +129,19 @@ export class AudioEngine {
     this.ptStartTimes.set(slot, this.ctx.currentTime);
 
     src.onended = () => {
-      if (this.ptSources.get(slot) === src) {
-        this.cleanupPtSource(slot);
+      if (this.ptSources.get(slot) !== src) return;
+      const wasFading = this.ptFading.has(slot);
+      this.cleanupPtSource(slot);
+      if (!wasFading) {
+        // Natural end — reset position to start
         this.ptOffsets.delete(slot);
         onEnded();
       }
+      // If wasFading: offset was already recorded at pause time; UI already notified
     };
   }
 
-  pauseTrack(slot: number): void {
+  pauseTrack(slot: number, fadeSeconds: number): void {
     const src = this.ptSources.get(slot);
     if (!src) return;
 
@@ -150,12 +153,28 @@ export class AudioEngine {
 
     if (buffer && !p.loop) {
       newOffset = Math.min(newOffset, buffer.duration);
-    } else if (buffer && p.loop) {
+    } else if (buffer && p.loop && buffer.duration > 0) {
       newOffset = newOffset % buffer.duration;
     }
 
     this.ptOffsets.set(slot, newOffset);
-    this.cleanupPtSource(slot);
+
+    if (fadeSeconds <= 0) {
+      this.cleanupPtSource(slot);
+      return;
+    }
+
+    const gain = this.ptGains.get(slot);
+    const now = this.ctx.currentTime;
+    if (gain) {
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + fadeSeconds);
+    }
+
+    // Mark as fading so onended knows not to reset offset or call UI callback
+    this.ptFading.add(slot);
+    try { src.stop(now + fadeSeconds); } catch { /* already scheduled to stop */ }
   }
 
   stopAllPerTrack(): void {
@@ -173,6 +192,7 @@ export class AudioEngine {
       src.disconnect();
       this.ptSources.delete(slot);
     }
+    this.ptFading.delete(slot);
     this.ptGains.get(slot)?.disconnect();
     this.ptGains.delete(slot);
     this.ptPans.get(slot)?.disconnect();
@@ -209,7 +229,6 @@ export class AudioEngine {
     }
     this.playing = true;
 
-    // Use the longest source's onended as the "playback finished" signal.
     let longestSrc: AudioBufferSourceNode | undefined;
     let longestDur = 0;
     for (const [slot, src] of this.sources) {
@@ -247,7 +266,6 @@ export class AudioEngine {
 
   isPlaying() { return this.playing; }
 
-  // Current playback position (seconds). Returns 0 when stopped.
   currentTime(): number {
     if (!this.playing) return 0;
     return Math.max(0, this.ctx.currentTime - this.startedAtCtxTime);

@@ -1,4 +1,4 @@
-import { Track } from '../types';
+import { Track, audioSlot } from '../types';
 import { LeftPanel, TransportFlash } from './LeftPanel';
 import { Strip, StripFlash } from './Strip';
 import type { TransportAction } from '../midi/types';
@@ -59,7 +59,7 @@ export function Device(props: Props) {
               loading={!!props.loading[t.slot]}
               error={props.errors[t.slot]}
               flash={props.stripFlash[t.slot]}
-              trackPlaying={props.playingTracks.has(t.slot)}
+              trackPlaying={props.playingTracks.has(audioSlot(props.currentPageIndex, t.slot))}
               onChange={(patch) => props.onUpdateTrack(t.slot, patch)}
               onTogglePlay={() => props.onToggleTrackPlay(t.slot)}
               onDropFiles={(files) => props.onDropOnStrip(t.slot, files)}

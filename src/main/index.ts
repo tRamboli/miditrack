@@ -5,14 +5,54 @@ const isDev = !app.isPackaged;
 const APP_NAME = 'MidiTracks';
 
 app.setName(APP_NAME);
-// Override the App Support / userData dir name so dev runs don't collide with
-// any older "miditrack" data.
 app.setPath('userData', join(app.getPath('appData'), APP_NAME));
 
 const iconPath = join(__dirname, '../../build/icon.png');
 
+let win: BrowserWindow | null = null;
+
+function buildAppMenu() {
+  const isMac = process.platform === 'darwin';
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac
+      ? [
+          {
+            label: APP_NAME,
+            submenu: [
+              { role: 'about' as const, label: `About ${APP_NAME}` },
+              { type: 'separator' as const },
+              { role: 'services' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const, label: `Hide ${APP_NAME}` },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              { role: 'quit' as const, label: `Quit ${APP_NAME}` }
+            ]
+          }
+        ]
+      : []),
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Settings…',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => win?.webContents.send('open-settings')
+        },
+        { type: 'separator' },
+        isMac ? { role: 'close' as const } : { role: 'quit' as const }
+      ]
+    },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' }
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 function createWindow() {
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
@@ -40,38 +80,6 @@ function createWindow() {
   } else {
     win.loadFile(join(__dirname, '../renderer/index.html'));
   }
-}
-
-function buildAppMenu() {
-  const isMac = process.platform === 'darwin';
-  const template: Electron.MenuItemConstructorOptions[] = [
-    ...(isMac
-      ? [
-          {
-            label: APP_NAME,
-            submenu: [
-              { role: 'about' as const, label: `About ${APP_NAME}` },
-              { type: 'separator' as const },
-              { role: 'services' as const },
-              { type: 'separator' as const },
-              { role: 'hide' as const, label: `Hide ${APP_NAME}` },
-              { role: 'hideOthers' as const },
-              { role: 'unhide' as const },
-              { type: 'separator' as const },
-              { role: 'quit' as const, label: `Quit ${APP_NAME}` }
-            ]
-          }
-        ]
-      : []),
-    {
-      label: 'File',
-      submenu: [isMac ? { role: 'close' as const } : { role: 'quit' as const }]
-    },
-    { role: 'editMenu' },
-    { role: 'viewMenu' },
-    { role: 'windowMenu' }
-  ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 app.whenReady().then(() => {
