@@ -44,7 +44,7 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
         onDropFiles(Array.from(e.dataTransfer.files));
       }}
     >
-      <div className="strip__screen" title={error || track.name || `Slot ${track.slot + 1}`}>
+      <div className={`strip__screen${trackPlaying ? ' is-playing' : ''}`} title={error || track.name || `Slot ${track.slot + 1}`}>
         <div className="strip__screen-num">{(track.slot + 1).toString().padStart(2, '0')}</div>
         <div className="strip__screen-name">
           {loading ? 'decoding…' : error ? 'error' : track.name || 'empty'}

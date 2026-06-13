@@ -65,7 +65,7 @@ export function Fader({ value, flash, onChange }: Props) {
       <div className="fader__rail">
         <div className="fader__rail-line" />
       </div>
-      <div className="fader__cap" style={{ top: `calc(${capTopPercent}% - 16px)` }}>
+      <div className="fader__cap" style={{ top: `calc(${capTopPercent}% - 24px)` }}>
         <div className="fader__cap-light" />
       </div>
     </div>
