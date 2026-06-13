@@ -1,0 +1,25 @@
+appId: com.miditracks.app
+productName: MidiTracks
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: resources
+    to: .
+    filter:
+      - "**/*"
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.music
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
