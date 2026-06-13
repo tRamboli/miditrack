@@ -5,7 +5,7 @@ type Props = {
   active?: boolean;
   flash?: boolean;
   size?: 'xs' | 'sm' | 'md' | 'lg';
-  variant?: 'red' | 'amber';
+  variant?: 'red' | 'amber' | 'green' | 'yellow' | 'white' | 'purple';
   onClick?: () => void;
   title?: string;
   block?: boolean;

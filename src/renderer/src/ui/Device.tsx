@@ -12,12 +12,21 @@ type Props = {
   errors: Record<number, string>;
   stripFlash: Record<number, StripFlash | undefined>;
   transportFlash: TransportFlash;
+  currentPageIndex: number;
+  totalPages: number;
   onPlay: () => void;
   onStop: () => void;
   onToggleCycle: () => void;
   onTransport: (action: TransportAction) => void;
+  playingTracks: Set<number>;
   onUpdateTrack: (slot: number, patch: Partial<Track>) => void;
+  onToggleTrackPlay: (slot: number) => void;
   onDropOnStrip: (slot: number, files: File[]) => void;
+  onPrevPage: () => void;
+  onNextPage: () => void;
+  onAddPage: () => void;
+  onResetPage: () => void;
+  onResetAll: () => void;
 };
 
 export function Device(props: Props) {
@@ -28,23 +37,35 @@ export function Device(props: Props) {
         cycle={props.cycle}
         midiDeviceName={props.midiDeviceName}
         flash={props.transportFlash}
+        currentPageIndex={props.currentPageIndex}
+        totalPages={props.totalPages}
         onPlay={props.onPlay}
         onStop={props.onStop}
         onToggleCycle={props.onToggleCycle}
         onTransport={props.onTransport}
+        onPrevPage={props.onPrevPage}
+        onNextPage={props.onNextPage}
+        onAddPage={props.onAddPage}
+        onResetPage={props.onResetPage}
+        onResetAll={props.onResetAll}
       />
-      <div className="strips">
-        {props.tracks.map((t) => (
-          <Strip
-            key={t.id}
-            track={t}
-            loading={!!props.loading[t.slot]}
-            error={props.errors[t.slot]}
-            flash={props.stripFlash[t.slot]}
-            onChange={(patch) => props.onUpdateTrack(t.slot, patch)}
-            onDropFiles={(files) => props.onDropOnStrip(t.slot, files)}
-          />
-        ))}
+      <div className="strips-area">
+        <div className="page-title">PAGE {String(props.currentPageIndex + 1).padStart(2, '0')}</div>
+        <div className="strips">
+          {props.tracks.map((t) => (
+            <Strip
+              key={t.id}
+              track={t}
+              loading={!!props.loading[t.slot]}
+              error={props.errors[t.slot]}
+              flash={props.stripFlash[t.slot]}
+              trackPlaying={props.playingTracks.has(t.slot)}
+              onChange={(patch) => props.onUpdateTrack(t.slot, patch)}
+              onTogglePlay={() => props.onToggleTrackPlay(t.slot)}
+              onDropFiles={(files) => props.onDropOnStrip(t.slot, files)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

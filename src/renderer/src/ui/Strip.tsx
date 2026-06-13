@@ -14,14 +14,16 @@ export type StripFlash = {
 
 type Props = {
   track: Track;
+  trackPlaying?: boolean;
   loading?: boolean;
   error?: string;
   flash?: StripFlash;
   onChange: (patch: Partial<Track>) => void;
+  onTogglePlay: () => void;
   onDropFiles: (files: File[]) => void;
 };
 
-export function Strip({ track, loading, error, flash, onChange, onDropFiles }: Props) {
+export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasFile = !!track.filePath;
 
@@ -61,12 +63,13 @@ export function Strip({ track, loading, error, flash, onChange, onDropFiles }: P
       <div className="strip__body">
         <div className="strip__sm-col">
           <Pad
-            label="S"
-            active={track.solo}
+            label={<img src="./loop.png" alt="loop" style={{ width: 18, height: 18, filter: 'invert(1)', opacity: 0.7 }} />}
+            active={track.loop}
             flash={flash?.s}
             size="sm"
-            onClick={() => onChange({ solo: !track.solo })}
-            title="Solo"
+            variant="purple"
+            onClick={() => onChange({ loop: !track.loop })}
+            title="Loop"
           />
           <Pad
             label="M"
@@ -77,10 +80,13 @@ export function Strip({ track, loading, error, flash, onChange, onDropFiles }: P
             title="Mute"
           />
           <Pad
-            label="R"
+            label={trackPlaying ? '⏸' : '▶'}
+            active={trackPlaying}
             flash={flash?.r}
             size="sm"
-            title="Record / Arm (not wired)"
+            variant={trackPlaying ? 'yellow' : 'green'}
+            onClick={onTogglePlay}
+            title={trackPlaying ? 'Pause track' : 'Play track'}
           />
         </div>
         <div className="strip__fader-col">

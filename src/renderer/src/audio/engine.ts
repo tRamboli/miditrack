@@ -3,9 +3,10 @@ export type TrackParams = {
   pan: number;
   mute: boolean;
   solo: boolean;
+  loop: boolean;
 };
 
-const DEFAULT_PARAMS: TrackParams = { volume: 0.8, pan: 0, mute: false, solo: false };
+const DEFAULT_PARAMS: TrackParams = { volume: 0.8, pan: 0, mute: false, solo: false, loop: false };
 
 export class AudioEngine {
   private ctx: AudioContext;
@@ -19,6 +20,13 @@ export class AudioEngine {
   private startedAtCtxTime = 0;
   private anySolo = false;
   private onEnded?: () => void;
+
+  // Per-track independent playback
+  private ptSources = new Map<number, AudioBufferSourceNode>();
+  private ptGains = new Map<number, GainNode>();
+  private ptPans = new Map<number, StereoPannerNode>();
+  private ptOffsets = new Map<number, number>();
+  private ptStartTimes = new Map<number, number>();
 
   constructor() {
     this.ctx = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
@@ -42,6 +50,8 @@ export class AudioEngine {
   }
 
   unload(slot: number) {
+    this.cleanupPtSource(slot);
+    this.ptOffsets.delete(slot);
     this.buffers.delete(slot);
     this.params.delete(slot);
   }
@@ -61,6 +71,16 @@ export class AudioEngine {
     }
     const pan = this.pans.get(slot);
     if (pan) pan.pan.setTargetAtTime(next.pan, now, 0.01);
+    const src = this.sources.get(slot);
+    if (src && patch.loop !== undefined) src.loop = patch.loop;
+
+    // Mirror pan/volume changes to per-track playback too
+    const ptGain = this.ptGains.get(slot);
+    if (ptGain && patch.volume !== undefined) ptGain.gain.setTargetAtTime(patch.volume, now, 0.01);
+    const ptPan = this.ptPans.get(slot);
+    if (ptPan && patch.pan !== undefined) ptPan.pan.setTargetAtTime(patch.pan, now, 0.01);
+    const ptSrc = this.ptSources.get(slot);
+    if (ptSrc && patch.loop !== undefined) ptSrc.loop = patch.loop;
   }
 
   private recomputeAnySolo() {
@@ -77,6 +97,90 @@ export class AudioEngine {
     if (this.anySolo && !p.solo) return 0;
     return p.volume;
   }
+
+  // --- Per-track independent playback ---
+
+  async playTrack(slot: number, onEnded: () => void): Promise<void> {
+    const buffer = this.buffers.get(slot);
+    if (!buffer) return;
+    if (this.ctx.state === 'suspended') await this.ctx.resume();
+
+    // Clean up any existing per-track source for this slot without resetting offset
+    this.cleanupPtSource(slot);
+
+    const p = this.params.get(slot) ?? { ...DEFAULT_PARAMS };
+    const offset = this.ptOffsets.get(slot) ?? 0;
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = p.loop;
+
+    const gain = this.ctx.createGain();
+    gain.gain.value = p.volume;
+
+    const pan = this.ctx.createStereoPanner();
+    pan.pan.value = p.pan;
+
+    src.connect(gain).connect(pan).connect(this.master);
+    src.start(this.ctx.currentTime, offset);
+
+    this.ptSources.set(slot, src);
+    this.ptGains.set(slot, gain);
+    this.ptPans.set(slot, pan);
+    this.ptStartTimes.set(slot, this.ctx.currentTime);
+
+    src.onended = () => {
+      if (this.ptSources.get(slot) === src) {
+        this.cleanupPtSource(slot);
+        this.ptOffsets.delete(slot);
+        onEnded();
+      }
+    };
+  }
+
+  pauseTrack(slot: number): void {
+    const src = this.ptSources.get(slot);
+    if (!src) return;
+
+    const buffer = this.buffers.get(slot);
+    const p = this.params.get(slot) ?? { ...DEFAULT_PARAMS };
+    const startTime = this.ptStartTimes.get(slot) ?? this.ctx.currentTime;
+    const prevOffset = this.ptOffsets.get(slot) ?? 0;
+    let newOffset = prevOffset + (this.ctx.currentTime - startTime);
+
+    if (buffer && !p.loop) {
+      newOffset = Math.min(newOffset, buffer.duration);
+    } else if (buffer && p.loop) {
+      newOffset = newOffset % buffer.duration;
+    }
+
+    this.ptOffsets.set(slot, newOffset);
+    this.cleanupPtSource(slot);
+  }
+
+  stopAllPerTrack(): void {
+    for (const slot of [...this.ptSources.keys()]) {
+      this.cleanupPtSource(slot);
+    }
+    this.ptOffsets.clear();
+  }
+
+  private cleanupPtSource(slot: number): void {
+    const src = this.ptSources.get(slot);
+    if (src) {
+      src.onended = null;
+      try { src.stop(); } catch { /* already stopped */ }
+      src.disconnect();
+      this.ptSources.delete(slot);
+    }
+    this.ptGains.get(slot)?.disconnect();
+    this.ptGains.delete(slot);
+    this.ptPans.get(slot)?.disconnect();
+    this.ptPans.delete(slot);
+    this.ptStartTimes.delete(slot);
+  }
+
+  // --- Global playback ---
 
   async play() {
     if (this.playing) return;
@@ -95,6 +199,7 @@ export class AudioEngine {
       const p = this.params.get(slot) ?? { ...DEFAULT_PARAMS };
       gain.gain.value = this.effectiveGain(slot);
       pan.pan.value = p.pan;
+      src.loop = p.loop;
       src.connect(gain).connect(pan).connect(this.master);
       src.start(startAt);
       this.sources.set(slot, src);
@@ -122,6 +227,7 @@ export class AudioEngine {
   }
 
   stop() {
+    this.stopAllPerTrack();
     if (!this.playing) return;
     this.stopInternal();
   }

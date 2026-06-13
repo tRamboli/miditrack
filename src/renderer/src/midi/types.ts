@@ -12,7 +12,7 @@ export type TransportAction =
   | 'trackPrev' | 'trackNext';
 
 export type ContinuousParam = 'volume' | 'pan';
-export type BoolParam = 'mute' | 'solo' | 'arm';
+export type BoolParam = 'mute' | 'solo' | 'loop' | 'arm';
 export type TrackParam = ContinuousParam | BoolParam;
 
 export type MidiPreset = {

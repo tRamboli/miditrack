@@ -8,10 +8,17 @@ type Props = {
   cycle: boolean;
   midiDeviceName: string | null;
   flash?: TransportFlash;
+  currentPageIndex: number;
+  totalPages: number;
   onPlay: () => void;
   onStop: () => void;
   onToggleCycle: () => void;
   onTransport: (action: TransportAction) => void;
+  onPrevPage: () => void;
+  onNextPage: () => void;
+  onAddPage: () => void;
+  onResetPage: () => void;
+  onResetAll: () => void;
 };
 
 export function LeftPanel({
@@ -19,11 +26,24 @@ export function LeftPanel({
   cycle,
   midiDeviceName,
   flash,
+  currentPageIndex,
+  totalPages,
   onPlay,
   onStop,
   onToggleCycle,
-  onTransport
+  onTransport,
+  onPrevPage,
+  onNextPage,
+  onAddPage,
+  onResetPage,
+  onResetAll
 }: Props) {
+  const pageLabel = String(currentPageIndex + 1).padStart(2, '0');
+  const totalLabel = String(totalPages).padStart(2, '0');
+  const canPrev = currentPageIndex > 0;
+  const canNext = currentPageIndex < totalPages - 1;
+  const canAdd = totalPages < 99;
+
   return (
     <aside className="left-panel">
       <div className="brand">
@@ -35,18 +55,46 @@ export function LeftPanel({
         <div className="brand__power" />
       </div>
 
-      <div className="left-panel__row">
-        <div className="left-panel__group">
-          <div className="left-panel__label">TRACK</div>
-          <div className="pad-row">
-            <Pad label="◀" size="xs" flash={flash?.trackPrev} onClick={() => onTransport('trackPrev')} title="Track Prev" />
-            <Pad label="▶" size="xs" flash={flash?.trackNext} onClick={() => onTransport('trackNext')} title="Track Next" />
+      {/* Page navigation (repurposes TRACK buttons) */}
+      <div className="left-panel__group">
+        <div className="left-panel__label">TRACK</div>
+        <div className="page-nav">
+          <Pad
+            label="<"
+            size="xs"
+            flash={flash?.trackPrev}
+            onClick={onPrevPage}
+            title="Previous page"
+          />
+          <div className="page-indicator">
+            <span className="page-indicator__num">{pageLabel}</span>
+            <span className="page-indicator__sep">/</span>
+            <span className="page-indicator__total">{totalLabel}</span>
           </div>
+          <Pad
+            label=">"
+            size="xs"
+            flash={flash?.trackNext}
+            onClick={onNextPage}
+            title="Next page"
+          />
+          {canAdd && (
+            <Pad
+              label="+"
+              size="xs"
+              variant="white"
+              onClick={onAddPage}
+              title="Add page"
+            />
+          )}
         </div>
+      </div>
+
+      <div className="left-panel__row">
         <div className="left-panel__group left-panel__group--marker">
           <div className="left-panel__label">MARKER</div>
           <div className="pad-row">
-            <Pad label="SET" size="xs" flash={flash?.markerSet} onClick={() => onTransport('markerSet')} title="Set Marker" />
+            <Pad label="SET" size="xs" variant="yellow" flash={flash?.markerSet} onClick={() => onTransport('markerSet')} title="Set Marker" />
             <Pad label="◀" size="xs" flash={flash?.markerPrev} onClick={() => onTransport('markerPrev')} title="Prev Marker" />
             <Pad label="▶" size="xs" flash={flash?.markerNext} onClick={() => onTransport('markerNext')} title="Next Marker" />
           </div>
@@ -65,11 +113,19 @@ export function LeftPanel({
       </div>
 
       <div className="left-panel__transport">
-        <Pad label="⏮" size="sm" flash={flash?.rewind} onClick={() => onTransport('rewind')} title="Rewind" />
-        <Pad label="⏭" size="sm" flash={flash?.forward} onClick={() => onTransport('forward')} title="Fast forward" />
-        <Pad label="■" size="sm" flash={flash?.stop} onClick={onStop} title="Stop" />
-        <Pad label="▶" size="sm" active={playing} flash={flash?.play} onClick={onPlay} title="Play" />
-        <Pad label="●" size="sm" flash={flash?.record} onClick={() => onTransport('record')} title="Record (not wired)" />
+        <Pad label="⏮" size="md" variant="white" flash={flash?.rewind} onClick={() => onTransport('rewind')} title="Rewind" />
+        <Pad label="⏭" size="md" variant="white" flash={flash?.forward} onClick={() => onTransport('forward')} title="Fast forward" />
+        <Pad label={<span style={{fontSize: '36px'}}>■</span>} size="md" variant="red" flash={flash?.stop} onClick={onStop} title="Stop" />
+        <Pad label="▶" size="md" variant="green" active={playing} flash={flash?.play} onClick={onPlay} title="Play" />
+        <Pad label={<span style={{fontSize: '36px'}}>●</span>} size="md" variant="red" flash={flash?.record} onClick={() => onTransport('record')} title="Record (not wired)" />
+      </div>
+
+      <div className="left-panel__group left-panel__group--reset">
+        <div className="left-panel__label">RESET</div>
+        <div className="pad-row">
+          <Pad label="PAGE" size="xs" variant="red" onClick={onResetPage} title="Clear current page" />
+          <Pad label="ALL" size="xs" variant="red" onClick={onResetAll} title="Remove all pages" />
+        </div>
       </div>
 
       <div className={`midi-status ${midiDeviceName ? 'is-connected' : ''}`}>
