@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TRACK_COUNT, Track, Page, MAX_PAGES, newPage, audioSlot, AppSettings, DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY } from './types';
+import { TRACK_COUNT, Track, Page, MAX_PAGES, newPage, audioSlot, AppSettings, DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY, Playlist, PLAYLISTS_STORAGE_KEY } from './types';
 import { Device } from './ui/Device';
 import { Settings } from './ui/Settings';
+import { PlaylistPanel } from './ui/PlaylistPanel';
 import { AudioEngine } from './audio/engine';
 import { MidiHost } from './midi/devices';
 import { MidiRouter } from './midi/router';
@@ -44,6 +45,30 @@ export function App() {
     setSettings(s);
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(s));
   }, []);
+
+  // Playlists
+  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
+    try {
+      const raw = localStorage.getItem(PLAYLISTS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+  const playlistsRef = useRef(playlists);
+  useEffect(() => {
+    playlistsRef.current = playlists;
+    localStorage.setItem(PLAYLISTS_STORAGE_KEY, JSON.stringify(playlists));
+  }, [playlists]);
+
+  const [selectedPlaylistIdx, setSelectedPlaylistIdx] = useState(0);
+  const selectedPlaylistIdxRef = useRef(selectedPlaylistIdx);
+  useEffect(() => { selectedPlaylistIdxRef.current = selectedPlaylistIdx; }, [selectedPlaylistIdx]);
+
+  const [playlistTrackIdx, setPlaylistTrackIdx] = useState(-1);
+  const playlistTrackIdxRef = useRef(playlistTrackIdx);
+  useEffect(() => { playlistTrackIdxRef.current = playlistTrackIdx; }, [playlistTrackIdx]);
+
+  const [playlistPlaying, setPlaylistPlaying] = useState(false);
+  const [playlistPanelOpen, setPlaylistPanelOpen] = useState(false);
 
   const [playingTracks, setPlayingTracks] = useState<Set<number>>(new Set());
   const playingTracksRef = useRef(playingTracks);
@@ -115,14 +140,44 @@ export function App() {
   const updateTrackRef = useRef(updateTrack);
   useEffect(() => { updateTrackRef.current = updateTrack; }, [updateTrack]);
 
+  // Sequential playlist playback — called recursively via ref
+  const playPlaylistFrom = useCallback(async (playlistIdx: number, trackIdx: number) => {
+    const playlist = playlistsRef.current[playlistIdx];
+    const file = playlist?.files[trackIdx];
+    if (!file) {
+      setPlaylistPlaying(false);
+      setPlaylistTrackIdx(-1);
+      return;
+    }
+    setPlaylistTrackIdx(trackIdx);
+    setPlaylistPlaying(true);
+    try {
+      const ab = await window.miditrack.readFile(file.path);
+      await engineRef.current!.playlistPlay(ab, () => {
+        void playPlaylistFromRef.current(playlistIdx, trackIdx + 1);
+      });
+    } catch {
+      void playPlaylistFromRef.current(playlistIdx, trackIdx + 1);
+    }
+  }, []);
+  const playPlaylistFromRef = useRef(playPlaylistFrom);
+  useEffect(() => { playPlaylistFromRef.current = playPlaylistFrom; }, [playPlaylistFrom]);
+
   const onPlay = useCallback(async () => {
-    await engineRef.current!.play();
-    setPlaying(true);
+    if (playlistsRef.current.length > 0) {
+      engineRef.current!.playlistStop();
+      await playPlaylistFromRef.current(selectedPlaylistIdxRef.current, 0);
+    } else {
+      await engineRef.current!.play();
+      setPlaying(true);
+    }
   }, []);
 
   const onStop = useCallback(() => {
     engineRef.current!.stop();
     setPlaying(false);
+    setPlaylistPlaying(false);
+    setPlaylistTrackIdx(-1);
     setPlayingTracks(new Set());
   }, []);
 
@@ -145,6 +200,21 @@ export function App() {
 
   const onTransport = useCallback((action: TransportAction) => {
     if (action === 'cycle') setCycle((c) => !c);
+    if (action === 'markerSet') setPlaylistPanelOpen(true);
+    if (action === 'markerPrev') {
+      const next = Math.max(0, selectedPlaylistIdxRef.current - 1);
+      setSelectedPlaylistIdx(next);
+      engineRef.current!.playlistStop();
+      setPlaylistPlaying(false);
+      setPlaylistTrackIdx(-1);
+    }
+    if (action === 'markerNext') {
+      const next = Math.min(playlistsRef.current.length - 1, selectedPlaylistIdxRef.current + 1);
+      setSelectedPlaylistIdx(next);
+      engineRef.current!.playlistStop();
+      setPlaylistPlaying(false);
+      setPlaylistTrackIdx(-1);
+    }
   }, []);
 
   const onPlayRef = useRef(onPlay);
@@ -162,6 +232,35 @@ export function App() {
   useEffect(() => {
     const off = window.miditrack.onOpenSettings(() => setSettingsOpen(true));
     return off;
+  }, []);
+
+  // Playlist management
+  const onAddPlaylist = useCallback(async () => {
+    const dirPath = await window.miditrack.selectDirectory();
+    if (!dirPath) return;
+    const files = await window.miditrack.readAudioFiles(dirPath);
+    const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
+    const playlist: Playlist = { id: `pl-${Date.now()}`, name, dirPath, files };
+    setPlaylists(prev => [...prev, playlist]);
+    setSelectedPlaylistIdx(prev => prev); // keep current
+  }, []);
+
+  const onRemovePlaylist = useCallback((idx: number) => {
+    setPlaylists(prev => {
+      const next = prev.filter((_, i) => i !== idx);
+      return next;
+    });
+    setSelectedPlaylistIdx(prev => Math.max(0, prev >= idx ? prev - 1 : prev));
+    engineRef.current!.playlistStop();
+    setPlaylistPlaying(false);
+    setPlaylistTrackIdx(-1);
+  }, []);
+
+  const onSelectPlaylist = useCallback((idx: number) => {
+    setSelectedPlaylistIdx(idx);
+    engineRef.current!.playlistStop();
+    setPlaylistPlaying(false);
+    setPlaylistTrackIdx(-1);
   }, []);
 
   // Page navigation
@@ -362,11 +461,27 @@ export function App() {
         />
       )}
 
+      {playlistPanelOpen && (
+        <PlaylistPanel
+          playlists={playlists}
+          selectedIndex={selectedPlaylistIdx}
+          playingIndex={playlistTrackIdx}
+          isPlaying={playlistPlaying}
+          onSelectPlaylist={onSelectPlaylist}
+          onAddPlaylist={onAddPlaylist}
+          onRemovePlaylist={onRemovePlaylist}
+          onClose={() => setPlaylistPanelOpen(false)}
+        />
+      )}
+
       <Device
         tracks={currentTracks}
-        playing={playing}
+        playing={playing || playlistPlaying}
         cycle={cycle}
         midiDeviceName={midiDeviceName}
+        playlists={playlists}
+        selectedPlaylistIdx={selectedPlaylistIdx}
+        playlistPlaying={playlistPlaying}
         loading={Object.fromEntries(
           Object.entries(loading)
             .filter(([k]) => k.startsWith(`${currentPageIndex}-`))

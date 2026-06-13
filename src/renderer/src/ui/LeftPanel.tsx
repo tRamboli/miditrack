@@ -1,5 +1,6 @@
 import { Pad } from './Pad';
 import type { TransportAction } from '../midi/types';
+import type { Playlist } from '../types';
 
 export type TransportFlash = Partial<Record<TransportAction, boolean>>;
 
@@ -19,6 +20,9 @@ type Props = {
   onAddPage: () => void;
   onResetPage: () => void;
   onResetAll: () => void;
+  selectedPlaylist: Playlist | null;
+  playlistCount: number;
+  playlistPlaying: boolean;
 };
 
 export function LeftPanel({
@@ -36,7 +40,10 @@ export function LeftPanel({
   onNextPage,
   onAddPage,
   onResetPage,
-  onResetAll
+  onResetAll,
+  selectedPlaylist,
+  playlistCount,
+  playlistPlaying
 }: Props) {
   const pageLabel = String(currentPageIndex + 1).padStart(2, '0');
   const totalLabel = String(totalPages).padStart(2, '0');
@@ -92,12 +99,17 @@ export function LeftPanel({
 
       <div className="left-panel__row">
         <div className="left-panel__group left-panel__group--marker">
-          <div className="left-panel__label">MARKER</div>
+          <div className="left-panel__label">PLAYLIST</div>
           <div className="pad-row">
-            <Pad label="SET" size="xs" variant="yellow" flash={flash?.markerSet} onClick={() => onTransport('markerSet')} title="Set Marker" />
-            <Pad label="◀" size="xs" flash={flash?.markerPrev} onClick={() => onTransport('markerPrev')} title="Prev Marker" />
-            <Pad label="▶" size="xs" flash={flash?.markerNext} onClick={() => onTransport('markerNext')} title="Next Marker" />
+            <Pad label="☰" size="xs" variant="yellow" flash={flash?.markerSet} onClick={() => onTransport('markerSet')} title="Open Playlists" />
+            <Pad label="◀" size="xs" flash={flash?.markerPrev} onClick={() => onTransport('markerPrev')} title="Prev Playlist" />
+            <Pad label="▶" size="xs" flash={flash?.markerNext} onClick={() => onTransport('markerNext')} title="Next Playlist" />
           </div>
+          {playlistCount > 0 && (
+            <div className={`playlist-name ${playlistPlaying ? 'is-playing' : ''}`}>
+              {selectedPlaylist?.name ?? '—'}
+            </div>
+          )}
         </div>
       </div>
 

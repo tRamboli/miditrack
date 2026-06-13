@@ -21,6 +21,10 @@ export class AudioEngine {
   private anySolo = false;
   private onEnded?: () => void;
 
+  // Playlist sequential player
+  private plSrc: AudioBufferSourceNode | null = null;
+  private plGain: GainNode | null = null;
+
   // Per-track independent playback
   private ptSources = new Map<number, AudioBufferSourceNode>();
   private ptGains = new Map<number, GainNode>();
@@ -96,6 +100,43 @@ export class AudioEngine {
     if (this.anySolo && !p.solo) return 0;
     return p.volume;
   }
+
+  // --- Playlist sequential player ---
+
+  async playlistPlay(arrayBuffer: ArrayBuffer, onEnded: () => void): Promise<void> {
+    this.playlistStop();
+    if (this.ctx.state === 'suspended') await this.ctx.resume();
+    const buffer = await this.ctx.decodeAudioData(arrayBuffer);
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 1;
+    src.connect(gain).connect(this.master);
+    src.start();
+    this.plSrc = src;
+    this.plGain = gain;
+    src.onended = () => {
+      if (this.plSrc === src) {
+        this.plSrc = null;
+        this.plGain?.disconnect();
+        this.plGain = null;
+        onEnded();
+      }
+    };
+  }
+
+  playlistStop(): void {
+    if (this.plSrc) {
+      this.plSrc.onended = null;
+      try { this.plSrc.stop(); } catch { /* already stopped */ }
+      this.plSrc.disconnect();
+      this.plSrc = null;
+    }
+    this.plGain?.disconnect();
+    this.plGain = null;
+  }
+
+  isPlaylistPlaying(): boolean { return this.plSrc !== null; }
 
   // --- Per-track independent playback ---
 
@@ -246,6 +287,7 @@ export class AudioEngine {
   }
 
   stop() {
+    this.playlistStop();
     this.stopAllPerTrack();
     if (!this.playing) return;
     this.stopInternal();

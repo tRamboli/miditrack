@@ -1,4 +1,4 @@
-import { Track, audioSlot } from '../types';
+import { Track, Playlist, audioSlot } from '../types';
 import { LeftPanel, TransportFlash } from './LeftPanel';
 import { Strip, StripFlash } from './Strip';
 import type { TransportAction } from '../midi/types';
@@ -27,6 +27,9 @@ type Props = {
   onAddPage: () => void;
   onResetPage: () => void;
   onResetAll: () => void;
+  playlists: Playlist[];
+  selectedPlaylistIdx: number;
+  playlistPlaying: boolean;
 };
 
 export function Device(props: Props) {
@@ -48,6 +51,9 @@ export function Device(props: Props) {
         onAddPage={props.onAddPage}
         onResetPage={props.onResetPage}
         onResetAll={props.onResetAll}
+        selectedPlaylist={props.playlists[props.selectedPlaylistIdx] ?? null}
+        playlistCount={props.playlists.length}
+        playlistPlaying={props.playlistPlaying}
       />
       <div className="strips-area">
         <div className="page-title">PAGE {String(props.currentPageIndex + 1).padStart(2, '0')}</div>

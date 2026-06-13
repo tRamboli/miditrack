@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, Menu } from 'electron';
+import { app, BrowserWindow, session, Menu, dialog, ipcMain } from 'electron';
 import { join } from 'path';
 
 const isDev = !app.isPackaged;
@@ -81,6 +81,11 @@ function createWindow() {
     win.loadFile(join(__dirname, '../renderer/index.html'));
   }
 }
+
+ipcMain.handle('select-directory', async () => {
+  const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+  return result.canceled ? null : result.filePaths[0];
+});
 
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {

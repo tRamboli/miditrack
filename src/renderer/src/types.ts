@@ -1,3 +1,17 @@
+export type PlaylistFile = {
+  name: string;
+  path: string;
+};
+
+export type Playlist = {
+  id: string;
+  name: string;      // directory name shown in UI
+  dirPath: string;
+  files: PlaylistFile[];
+};
+
+export const PLAYLISTS_STORAGE_KEY = 'miditrack-playlists';
+
 export type AppSettings = {
   fadeOutDuration: number; // seconds; 0 = instant
 };

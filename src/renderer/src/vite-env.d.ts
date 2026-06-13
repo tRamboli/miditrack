@@ -5,5 +5,8 @@ interface Window {
     platform: string;
     version: string;
     onOpenSettings: (cb: () => void) => () => void;
+    selectDirectory: () => Promise<string | null>;
+    readAudioFiles: (dirPath: string) => Promise<{ name: string; path: string }[]>;
+    readFile: (filePath: string) => Promise<ArrayBuffer>;
   };
 }
