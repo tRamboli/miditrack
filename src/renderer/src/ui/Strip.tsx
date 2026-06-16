@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MdLoop, MdVolumeOff, MdPlayArrow, MdPause } from 'react-icons/md';
 import { Track } from '../types';
 import { Knob } from './Knob';
@@ -24,9 +24,17 @@ type Props = {
   onDropFiles: (files: File[]) => void;
 };
 
-const SCALE_MARKS = Array.from({ length: 51 }, (_, i) => i * 2); // 0,2,4...100
+function scaleStep(h: number): number {
+  if (h >= 240) return 2;
+  if (h >= 140) return 5;
+  if (h >= 90) return 10;
+  if (h >= 60) return 20;
+  return 50;
+}
 
-function tickType(v: number): 'major' | 'mid' | 'minor' {
+function tickType(v: number, step: number): 'major' | 'mid' | 'minor' {
+  if (step >= 10) return 'major';
+  if (step === 5) return v % 10 === 0 ? 'major' : 'mid';
   if (v % 10 === 0) return 'major';
   if (v % 5 === 0) return 'mid';
   return 'minor';
@@ -35,6 +43,20 @@ function tickType(v: number): 'major' | 'mid' | 'minor' {
 export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasFile = !!track.filePath;
+
+  const scaleRef = useRef<HTMLDivElement>(null);
+  const [scaleHeight, setScaleHeight] = useState(300);
+
+  useEffect(() => {
+    const el = scaleRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setScaleHeight(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const step = scaleStep(scaleHeight);
+  const scaleMarks = Array.from({ length: Math.floor(100 / step) + 1 }, (_, i) => i * step);
 
   const handleScaleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -106,9 +128,9 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
           />
         </div>
         <div className="strip__fader-col">
-          <div className="fader-scale" onClick={handleScaleClick}>
-            {SCALE_MARKS.map(v => {
-              const type = tickType(v);
+          <div className="fader-scale" ref={scaleRef} onClick={handleScaleClick}>
+            {scaleMarks.map(v => {
+              const type = tickType(v, step);
               const isBold = v === 0 || v === 50 || v === 100;
               return (
                 <div

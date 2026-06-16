@@ -211,9 +211,11 @@ html, body, #root {
 .device {
   display: grid;
   grid-template-columns: 320px 1fr;
+  grid-template-rows: minmax(0, 1fr);
   gap: 18px;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   padding: 24px;
   align-items: stretch;
   background:
@@ -233,6 +235,8 @@ html, body, #root {
   flex-direction: column;
   gap: 18px;
   padding: 6px 8px 6px 6px;
+  min-height: 0;
+  overflow: hidden;
 }
 .brand {
   display: flex;
@@ -532,11 +536,14 @@ html, body, #root {
 .strips {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
+  min-height: 0;
+  flex: 1;
   padding: 4px 2px;
-  height: 100%;
   align-items: stretch;
+  overflow: hidden;
 }
 
 /* ---------------- Strip ---------------- */
@@ -551,6 +558,8 @@ html, body, #root {
   border: 1px solid transparent;
   transition: background 0.12s, border-color 0.12s;
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 .strip.is-empty { opacity: 0.85; }
 .strip.is-dragover {
@@ -615,7 +624,7 @@ html, body, #root {
   justify-content: space-between;
   gap: 6px;
 }
-.strip__sm-col .pad { width: 100%; height: 38px; font-size: 14px; }
+.strip__sm-col .pad { width: 100%; height: 38px; min-height: 0; font-size: 14px; }
 .strip__fader-col {
   min-height: 0;
   display: flex;
