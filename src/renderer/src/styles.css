@@ -611,11 +611,57 @@ html, body, #root {
 }
 .strip__sm-col .pad { width: 100%; height: 38px; font-size: 14px; }
 .strip__fader-col {
-  position: relative;
   min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: stretch;
 }
 
-.strip__db {
+.fader-scale {
+  position: relative;
+  width: 36px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.fader-scale__tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  transform: translateY(-50%);
+  gap: 2px;
+}
+.fader-scale__tick span {
+  width: 22px;
+  text-align: right;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.35);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+.fader-scale__label--bold {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-weight: 700;
+}
+.fader-scale__line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.22);
+  flex-shrink: 0;
+}
+.fader-scale__tick--major .fader-scale__line { width: 8px; }
+.fader-scale__tick--mid .fader-scale__line   { width: 5px; }
+.fader-scale__tick--minor .fader-scale__line { width: 3px; }
+
+.strip__fader-col .fader {
+  flex: 1;
+  min-width: 0;
+}
+
+.strip__vol {
   font-size: 12px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;

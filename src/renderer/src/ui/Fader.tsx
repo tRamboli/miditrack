@@ -48,7 +48,7 @@ export function Fader({ value, flash, onChange }: Props) {
     }
   }, []);
 
-  const onDoubleClick = useCallback(() => onChange(0.8), [onChange]);
+  const onDoubleClick = useCallback(() => onChange(0.5), [onChange]);
 
   const capTopPercent = (1 - value) * 100;
 

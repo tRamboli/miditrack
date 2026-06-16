@@ -48,7 +48,7 @@ export function emptyTrack(pageId: string, slot: number): Track {
     slot,
     name: '',
     filePath: '',
-    volume: 0.8,
+    volume: 0.5,
     pan: 0,
     mute: false,
     solo: false,

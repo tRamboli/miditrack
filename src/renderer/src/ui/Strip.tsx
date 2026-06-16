@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Track } from '../types';
 import { Knob } from './Knob';
 import { Fader } from './Fader';
@@ -23,9 +23,24 @@ type Props = {
   onDropFiles: (files: File[]) => void;
 };
 
+const SCALE_MARKS = Array.from({ length: 51 }, (_, i) => i * 2); // 0,2,4...100
+
+function tickType(v: number): 'major' | 'mid' | 'minor' {
+  if (v % 10 === 0) return 'major';
+  if (v % 5 === 0) return 'mid';
+  return 'minor';
+}
+
 export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasFile = !!track.filePath;
+
+  const handleScaleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = 1 - (e.clientY - rect.top) / rect.height;
+    const snapped = Math.round(Math.max(0, Math.min(1, ratio)) * 50) * 2;
+    onChange({ volume: snapped / 100 });
+  }, [onChange]);
 
   return (
     <div
@@ -90,6 +105,24 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
           />
         </div>
         <div className="strip__fader-col">
+          <div className="fader-scale" onClick={handleScaleClick}>
+            {SCALE_MARKS.map(v => {
+              const type = tickType(v);
+              const isBold = v === 0 || v === 50 || v === 100;
+              return (
+                <div
+                  key={v}
+                  className={`fader-scale__tick fader-scale__tick--${type}`}
+                  style={{ top: `${100 - v}%` }}
+                >
+                  {type === 'major' && (
+                    <span className={isBold ? 'fader-scale__label--bold' : ''}>{v}</span>
+                  )}
+                  <div className="fader-scale__line" />
+                </div>
+              );
+            })}
+          </div>
           <Fader
             value={track.volume}
             flash={flash?.fader}
@@ -98,8 +131,8 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
         </div>
       </div>
 
-      <div className="strip__db">
-        {track.volume === 0 ? '-∞' : `${(20 * Math.log10(track.volume)).toFixed(1)} dB`}
+      <div className="strip__vol">
+        {Math.round(track.volume * 100)}
       </div>
     </div>
   );
