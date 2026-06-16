@@ -25,6 +25,7 @@ type Props = {
   onPrevPage: () => void;
   onNextPage: () => void;
   onAddPage: () => void;
+  onRemovePage: () => void;
   onResetPage: () => void;
   onResetAll: () => void;
   playlists: Playlist[];
@@ -49,6 +50,7 @@ export function Device(props: Props) {
         onPrevPage={props.onPrevPage}
         onNextPage={props.onNextPage}
         onAddPage={props.onAddPage}
+        onRemovePage={props.onRemovePage}
         onResetPage={props.onResetPage}
         onResetAll={props.onResetAll}
         selectedPlaylist={props.playlists[props.selectedPlaylistIdx] ?? null}

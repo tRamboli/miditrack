@@ -281,6 +281,35 @@ export function App() {
     });
   }, []);
 
+  const onRemovePage = useCallback(() => {
+    const pi = currentPageIndexRef.current;
+    const engine = engineRef.current!;
+    engine.stop();
+    setPlaying(false);
+    setPlayingTracks((prev) => {
+      const n = new Set(prev);
+      for (let s = 0; s < TRACK_COUNT; s++) n.delete(audioSlot(pi, s));
+      return n;
+    });
+    for (let s = 0; s < TRACK_COUNT; s++) engine.unload(audioSlot(pi, s));
+    setLoading((l) => {
+      const n = { ...l };
+      for (let s = 0; s < TRACK_COUNT; s++) delete n[loadKey(pi, s)];
+      return n;
+    });
+    setErrors((e) => {
+      const n = { ...e };
+      for (let s = 0; s < TRACK_COUNT; s++) delete n[loadKey(pi, s)];
+      return n;
+    });
+    setPages((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((_, i) => i !== pi);
+      setCurrentPageIndex(Math.min(pi, next.length - 1));
+      return next;
+    });
+  }, []);
+
   const onResetPage = useCallback(() => {
     const pi = currentPageIndexRef.current;
     const engine = engineRef.current!;
@@ -507,6 +536,7 @@ export function App() {
         onPrevPage={onPrevPage}
         onNextPage={onNextPage}
         onAddPage={onAddPage}
+        onRemovePage={onRemovePage}
         onResetPage={onResetPage}
         onResetAll={onResetAll}
       />

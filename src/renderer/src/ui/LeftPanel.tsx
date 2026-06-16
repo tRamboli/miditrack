@@ -18,6 +18,7 @@ type Props = {
   onPrevPage: () => void;
   onNextPage: () => void;
   onAddPage: () => void;
+  onRemovePage: () => void;
   onResetPage: () => void;
   onResetAll: () => void;
   selectedPlaylist: Playlist | null;
@@ -39,6 +40,7 @@ export function LeftPanel({
   onPrevPage,
   onNextPage,
   onAddPage,
+  onRemovePage,
   onResetPage,
   onResetAll,
   selectedPlaylist,
@@ -50,6 +52,7 @@ export function LeftPanel({
   const canPrev = currentPageIndex > 0;
   const canNext = currentPageIndex < totalPages - 1;
   const canAdd = totalPages < 99;
+  const canRemove = totalPages > 1;
 
   return (
     <aside className="left-panel">
@@ -92,6 +95,15 @@ export function LeftPanel({
               variant="white"
               onClick={onAddPage}
               title="Add page"
+            />
+          )}
+          {canRemove && (
+            <Pad
+              label="−"
+              size="xs"
+              variant="red"
+              onClick={onRemovePage}
+              title="Remove current page"
             />
           )}
         </div>
