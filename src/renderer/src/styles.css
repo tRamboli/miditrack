@@ -130,10 +130,13 @@ html, body, #root {
   background: none;
   border: none;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 18px;
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .settings-close:hover { color: var(--text); background: #2e2e36; }
 .settings-body {
@@ -389,6 +392,9 @@ html, body, #root {
 .pad__label {
   font-size: inherit;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .pad--xs { width: 38px; height: 30px; font-size: 11px; }
 .pad--xs .pad__label { font-size: 16px; font-weight: 700; }
@@ -855,16 +861,22 @@ html, body, #root {
   font-size: 12px;
   padding: 5px 12px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .pl-add-btn:hover { background: #3a3a4a; }
 .pl-close {
   background: none;
   border: none;
   color: var(--text-dim);
-  font-size: 14px;
+  font-size: 18px;
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .pl-close:hover { color: var(--text); background: #2e2e36; }
 .pl-body {
@@ -896,11 +908,14 @@ html, body, #root {
   background: none;
   border: none;
   color: #50505a;
-  font-size: 11px;
+  font-size: 14px;
   cursor: pointer;
   padding: 1px 4px;
   border-radius: 3px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
 }
 .pl-list-item:hover .pl-list-remove { opacity: 1; }

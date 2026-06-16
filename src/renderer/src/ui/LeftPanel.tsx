@@ -1,3 +1,10 @@
+import {
+  MdChevronLeft, MdChevronRight, MdAdd, MdRemove,
+  MdQueueMusic, MdSkipPrevious, MdSkipNext,
+  MdRepeat, MdFastRewind, MdFastForward,
+  MdStop, MdPlayArrow, MdFiberManualRecord,
+  MdRestartAlt, MdDeleteSweep, MdPause,
+} from 'react-icons/md';
 import { Pad } from './Pad';
 import type { TransportAction } from '../midi/types';
 import type { Playlist } from '../types';
@@ -70,7 +77,7 @@ export function LeftPanel({
         <div className="left-panel__label">TRACK</div>
         <div className="page-nav">
           <Pad
-            label="<"
+            label={<MdChevronLeft />}
             size="xs"
             flash={flash?.trackPrev}
             onClick={onPrevPage}
@@ -82,7 +89,7 @@ export function LeftPanel({
             <span className="page-indicator__total">{totalLabel}</span>
           </div>
           <Pad
-            label=">"
+            label={<MdChevronRight />}
             size="xs"
             flash={flash?.trackNext}
             onClick={onNextPage}
@@ -90,7 +97,7 @@ export function LeftPanel({
           />
           {canAdd && (
             <Pad
-              label="+"
+              label={<MdAdd />}
               size="xs"
               variant="white"
               onClick={onAddPage}
@@ -99,7 +106,7 @@ export function LeftPanel({
           )}
           {canRemove && (
             <Pad
-              label="−"
+              label={<MdRemove />}
               size="xs"
               variant="red"
               onClick={onRemovePage}
@@ -113,9 +120,9 @@ export function LeftPanel({
         <div className="left-panel__group left-panel__group--marker">
           <div className="left-panel__label">PLAYLIST</div>
           <div className="pad-row">
-            <Pad label="☰" size="xs" variant="yellow" flash={flash?.markerSet} onClick={() => onTransport('markerSet')} title="Open Playlists" />
-            <Pad label="◀" size="xs" flash={flash?.markerPrev} onClick={() => onTransport('markerPrev')} title="Prev Playlist" />
-            <Pad label="▶" size="xs" flash={flash?.markerNext} onClick={() => onTransport('markerNext')} title="Next Playlist" />
+            <Pad label={<MdQueueMusic />} size="xs" variant="yellow" flash={flash?.markerSet} onClick={() => onTransport('markerSet')} title="Open Playlists" />
+            <Pad label={<MdSkipPrevious />} size="xs" flash={flash?.markerPrev} onClick={() => onTransport('markerPrev')} title="Prev Playlist" />
+            <Pad label={<MdSkipNext />} size="xs" flash={flash?.markerNext} onClick={() => onTransport('markerNext')} title="Next Playlist" />
           </div>
           {playlistCount > 0 && (
             <div className={`playlist-name ${playlistPlaying ? 'is-playing' : ''}`}>
@@ -127,7 +134,7 @@ export function LeftPanel({
 
       <div className="left-panel__cycle">
         <Pad
-          label="CYCLE"
+          label={<MdRepeat />}
           size="sm"
           active={cycle}
           flash={flash?.cycle}
@@ -137,18 +144,18 @@ export function LeftPanel({
       </div>
 
       <div className="left-panel__transport">
-        <Pad label="⏮" size="md" variant="white" flash={flash?.rewind} onClick={() => onTransport('rewind')} title="Rewind" />
-        <Pad label="⏭" size="md" variant="white" flash={flash?.forward} onClick={() => onTransport('forward')} title="Fast forward" />
-        <Pad label={<span style={{fontSize: '36px'}}>■</span>} size="md" variant="red" flash={flash?.stop} onClick={onStop} title="Stop" />
-        <Pad label="▶" size="md" variant="green" active={playing} flash={flash?.play} onClick={onPlay} title="Play" />
-        <Pad label={<span style={{fontSize: '36px'}}>●</span>} size="md" variant="red" flash={flash?.record} onClick={() => onTransport('record')} title="Record (not wired)" />
+        <Pad label={<MdFastRewind />} size="md" variant="white" flash={flash?.rewind} onClick={() => onTransport('rewind')} title="Rewind" />
+        <Pad label={<MdFastForward />} size="md" variant="white" flash={flash?.forward} onClick={() => onTransport('forward')} title="Fast forward" />
+        <Pad label={<MdStop />} size="md" variant="red" flash={flash?.stop} onClick={onStop} title="Stop" />
+        <Pad label={playing ? <MdPause /> : <MdPlayArrow />} size="md" variant="green" active={playing} flash={flash?.play} onClick={onPlay} title="Play" />
+        <Pad label={<MdFiberManualRecord />} size="md" variant="red" flash={flash?.record} onClick={() => onTransport('record')} title="Record (not wired)" />
       </div>
 
       <div className="left-panel__group left-panel__group--reset">
         <div className="left-panel__label">RESET</div>
         <div className="pad-row">
-          <Pad label="PAGE" size="xs" variant="red" onClick={onResetPage} title="Clear current page" />
-          <Pad label="ALL" size="xs" variant="red" onClick={onResetAll} title="Remove all pages" />
+          <Pad label={<MdRestartAlt />} size="xs" variant="red" onClick={onResetPage} title="Clear current page" />
+          <Pad label={<MdDeleteSweep />} size="xs" variant="red" onClick={onResetAll} title="Remove all pages" />
         </div>
       </div>
 

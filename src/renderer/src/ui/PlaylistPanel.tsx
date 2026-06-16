@@ -1,3 +1,4 @@
+import { MdCreateNewFolder, MdClose, MdPlayArrow } from 'react-icons/md';
 import { Playlist } from '../types';
 
 type Props = {
@@ -29,8 +30,8 @@ export function PlaylistPanel({
 
         <div className="pl-header">
           <span className="pl-title">PLAYLISTS</span>
-          <button className="pl-add-btn" onClick={onAddPlaylist} title="Add playlist from folder">+ Add Folder</button>
-          <button className="pl-close" onClick={onClose}>✕</button>
+          <button className="pl-add-btn" onClick={onAddPlaylist} title="Add playlist from folder"><MdCreateNewFolder /> Add Folder</button>
+          <button className="pl-close" onClick={onClose}><MdClose /></button>
         </div>
 
         <div className="pl-body">
@@ -51,7 +52,7 @@ export function PlaylistPanel({
                   className="pl-list-remove"
                   onClick={e => { e.stopPropagation(); onRemovePlaylist(i); }}
                   title="Remove playlist"
-                >✕</button>
+                ><MdClose /></button>
               </div>
             ))}
           </div>
@@ -68,7 +69,7 @@ export function PlaylistPanel({
                 <div key={f.path} className={`pl-file ${active ? 'is-playing' : ''}`}>
                   <span className="pl-file-num">{String(i + 1).padStart(2, '0')}</span>
                   <span className="pl-file-name" title={f.path}>{f.name}</span>
-                  {active && <span className="pl-file-indicator">▶</span>}
+                  {active && <span className="pl-file-indicator"><MdPlayArrow /></span>}
                 </div>
               );
             })}

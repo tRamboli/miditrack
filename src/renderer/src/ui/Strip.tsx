@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { MdLoop, MdVolumeOff, MdPlayArrow, MdPause } from 'react-icons/md';
 import { Track } from '../types';
 import { Knob } from './Knob';
 import { Fader } from './Fader';
@@ -78,7 +79,7 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
       <div className="strip__body">
         <div className="strip__sm-col">
           <Pad
-            label={<img src="./loop.png" alt="loop" style={{ width: 18, height: 18, filter: 'invert(1)', opacity: 0.7 }} />}
+            label={<MdLoop />}
             active={track.loop}
             flash={flash?.s}
             size="sm"
@@ -87,7 +88,7 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
             title="Loop"
           />
           <Pad
-            label="M"
+            label={<MdVolumeOff />}
             active={track.mute}
             flash={flash?.m}
             size="sm"
@@ -95,7 +96,7 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
             title="Mute"
           />
           <Pad
-            label={trackPlaying ? '⏸' : '▶'}
+            label={trackPlaying ? <MdPause /> : <MdPlayArrow />}
             active={trackPlaying}
             flash={flash?.r}
             size="sm"

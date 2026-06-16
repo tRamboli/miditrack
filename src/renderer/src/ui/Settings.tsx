@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MdClose } from 'react-icons/md';
 import { AppSettings } from '../types';
 
 type Props = {
@@ -20,7 +21,7 @@ export function Settings({ settings, onSave, onClose }: Props) {
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
           <span className="settings-title">Settings</span>
-          <button className="settings-close" onClick={onClose}>✕</button>
+          <button className="settings-close" onClick={onClose}><MdClose /></button>
         </div>
 
         <div className="settings-body">
