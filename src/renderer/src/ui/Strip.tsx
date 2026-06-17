@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MdLoop, MdVolumeOff, MdPlayArrow, MdPause } from 'react-icons/md';
+import { MdLoop, MdAdd, MdPlayArrow, MdPause } from 'react-icons/md';
 import { Track } from '../types';
 import { Knob } from './Knob';
 import { Fader } from './Fader';
@@ -22,6 +22,7 @@ type Props = {
   onChange: (patch: Partial<Track>) => void;
   onTogglePlay: () => void;
   onDropFiles: (files: File[]) => void;
+  onSelectFile: () => void;
 };
 
 function scaleStep(h: number): number {
@@ -40,7 +41,7 @@ function tickType(v: number, step: number): 'major' | 'mid' | 'minor' {
   return 'minor';
 }
 
-export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles }: Props) {
+export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles, onSelectFile }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasFile = !!track.filePath;
 
@@ -110,12 +111,12 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
             title="Loop"
           />
           <Pad
-            label={<MdVolumeOff />}
-            active={track.mute}
+            label={<MdAdd />}
+            active={false}
             flash={flash?.m}
             size="sm"
-            onClick={() => onChange({ mute: !track.mute })}
-            title="Mute"
+            onClick={onSelectFile}
+            title="Add song"
           />
           <Pad
             label={trackPlaying ? <MdPause /> : <MdPlayArrow />}

@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld('miditrack', {
   selectDirectory: (): Promise<string | null> =>
     ipcRenderer.invoke('select-directory'),
 
+  selectAudioFile: (): Promise<string | null> =>
+    ipcRenderer.invoke('select-audio-file'),
+
   readAudioFiles: async (dirPath: string): Promise<{ name: string; path: string }[]> => {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     return entries

@@ -468,6 +468,15 @@ export function App() {
     loadFilesToSlots(files, slot);
   }, [loadFilesToSlots]);
 
+  const onSelectFileForSlot = useCallback(async (slot: number) => {
+    const filePath = await window.miditrack.selectAudioFile();
+    if (!filePath) return;
+    const ab = await window.miditrack.readFile(filePath);
+    const name = filePath.split('/').pop() ?? filePath.split('\\').pop() ?? filePath;
+    const file = new File([ab], name);
+    await loadIntoSlot(currentPageIndexRef.current, slot, file);
+  }, [loadIntoSlot]);
+
   const allEmpty = currentTracks.every((t) => !t.filePath);
 
   return (
@@ -533,6 +542,7 @@ export function App() {
         onUpdateTrack={updateTrack}
         onToggleTrackPlay={onToggleTrackPlay}
         onDropOnStrip={onDropOnStrip}
+        onSelectFileForSlot={onSelectFileForSlot}
         onPrevPage={onPrevPage}
         onNextPage={onNextPage}
         onAddPage={onAddPage}

@@ -22,6 +22,7 @@ type Props = {
   onUpdateTrack: (slot: number, patch: Partial<Track>) => void;
   onToggleTrackPlay: (slot: number) => void;
   onDropOnStrip: (slot: number, files: File[]) => void;
+  onSelectFileForSlot: (slot: number) => void;
   onPrevPage: () => void;
   onNextPage: () => void;
   onAddPage: () => void;
@@ -71,6 +72,7 @@ export function Device(props: Props) {
               onChange={(patch) => props.onUpdateTrack(t.slot, patch)}
               onTogglePlay={() => props.onToggleTrackPlay(t.slot)}
               onDropFiles={(files) => props.onDropOnStrip(t.slot, files)}
+              onSelectFile={() => props.onSelectFileForSlot(t.slot)}
             />
           ))}
         </div>
