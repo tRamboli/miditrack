@@ -207,7 +207,7 @@ export function LeftPanel({
       <div className="left-panel__transport">
         <Pad label={<MdRepeat />} size="md" variant="purple" active={cycle} flash={flash?.cycle} onClick={onToggleCycle} title="Cycle (loop playlist)" />
         <Pad label={<MdStop />} size="md" variant="red" flash={flash?.stop} onClick={onStop} title="Stop" />
-        <Pad label={playing ? <MdPause /> : <MdPlayArrow />} size="md" variant="green" active={playing} flash={flash?.play} onClick={onPlay} title="Play" />
+        <Pad label={playing ? <MdPause /> : <MdPlayArrow />} size="md" variant={playing ? 'yellow' : 'green'} active={playing} flash={flash?.play} onClick={onPlay} title={playing ? 'Pause' : 'Play'} />
         <Pad label={<MdFiberManualRecord />} size="md" variant="red" flash={flash?.record} onClick={() => onTransport('record')} title="Record (not wired)" />
       </div>
 
