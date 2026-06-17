@@ -21,6 +21,7 @@ type Props = {
   playingTracks: Set<number>;
   onUpdateTrack: (slot: number, patch: Partial<Track>) => void;
   onToggleTrackPlay: (slot: number) => void;
+  onStopTrack: (slot: number) => void;
   onDropOnStrip: (slot: number, files: File[]) => void;
   onSelectFileForSlot: (slot: number) => void;
   onClearFileForSlot: (slot: number) => void;
@@ -78,6 +79,7 @@ export function Device(props: Props) {
               trackPlaying={props.playingTracks.has(audioSlot(props.currentPageIndex, t.slot))}
               onChange={(patch) => props.onUpdateTrack(t.slot, patch)}
               onTogglePlay={() => props.onToggleTrackPlay(t.slot)}
+              onStopTrack={() => props.onStopTrack(t.slot)}
               onDropFiles={(files) => props.onDropOnStrip(t.slot, files)}
               onSelectFile={() => props.onSelectFileForSlot(t.slot)}
               onClearFile={() => props.onClearFileForSlot(t.slot)}

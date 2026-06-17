@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MdLoop, MdAdd, MdPlayArrow, MdPause, MdClose } from 'react-icons/md';
+import { MdLoop, MdAdd, MdPlayArrow, MdPause, MdStop, MdClose } from 'react-icons/md';
 import { Track } from '../types';
 import { Knob } from './Knob';
 import { Fader } from './Fader';
@@ -21,6 +21,7 @@ type Props = {
   flash?: StripFlash;
   onChange: (patch: Partial<Track>) => void;
   onTogglePlay: () => void;
+  onStopTrack: () => void;
   onDropFiles: (files: File[]) => void;
   onSelectFile: () => void;
   onClearFile: () => void;
@@ -44,7 +45,7 @@ function tickType(v: number, step: number): 'major' | 'mid' | 'minor' {
   return 'minor';
 }
 
-export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles, onSelectFile, onClearFile, playlistVolume, onPlaylistVolumeChange }: Props) {
+export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onStopTrack, onDropFiles, onSelectFile, onClearFile, playlistVolume, onPlaylistVolumeChange }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasFile = !!track.filePath;
 
@@ -91,13 +92,21 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
         <div className="strip__screen-name">
           {loading ? 'decoding…' : error ? 'error' : track.name || 'empty'}
         </div>
-        {hasFile && (
+        {hasFile ? (
           <button
             className="strip__screen-clear"
             title="Remove audio file"
             onClick={(e) => { e.stopPropagation(); onClearFile(); }}
           >
             <MdClose />
+          </button>
+        ) : (
+          <button
+            className="strip__screen-clear is-add"
+            title="Add song"
+            onClick={(e) => { e.stopPropagation(); onSelectFile(); }}
+          >
+            <MdAdd />
           </button>
         )}
       </div>
@@ -137,12 +146,12 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
             title="Loop"
           />
           <Pad
-            label={<MdAdd />}
-            active={false}
+            label={<MdStop />}
             flash={flash?.m}
             size="sm"
-            onClick={onSelectFile}
-            title="Add song"
+            variant="red"
+            onClick={onStopTrack}
+            title="Stop (fade out, return to start)"
           />
           <Pad
             label={trackPlaying ? <MdPause /> : <MdPlayArrow />}

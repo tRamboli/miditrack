@@ -23,7 +23,7 @@ export const NANOKONTROL2_PRESET: MidiPreset = {
     volume: { type: 'cc' as const, channel: 'any' as const, number: i,         mode: 'absolute' as const },
     pan:    { type: 'cc' as const, channel: 'any' as const, number: 16 + i,    mode: 'absolute' as const },
     loop:   { type: 'cc' as const, channel: 'any' as const, number: 32 + i,    mode: 'toggle'   as const },
-    mute:   { type: 'cc' as const, channel: 'any' as const, number: 48 + i,    mode: 'toggle'   as const },
+    stop:   { type: 'cc' as const, channel: 'any' as const, number: 48 + i,    mode: 'momentary' as const },
     arm:    { type: 'cc' as const, channel: 'any' as const, number: 64 + i,    mode: 'toggle'   as const }
   }))
 };

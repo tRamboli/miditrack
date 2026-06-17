@@ -282,6 +282,32 @@ export class AudioEngine {
     try { src.stop(now + fadeSeconds); } catch { /* already scheduled to stop */ }
   }
 
+  // Like pauseTrack but resets the position to the start of the track.
+  stopTrack(slot: number, fadeSeconds: number): void {
+    // Reset position regardless of whether it's currently playing or paused mid-track.
+    this.ptOffsets.delete(slot);
+
+    const src = this.ptSources.get(slot);
+    if (!src) return;
+
+    if (fadeSeconds <= 0) {
+      this.cleanupPtSource(slot);
+      return;
+    }
+
+    const gain = this.ptGains.get(slot);
+    const now = this.ctx.currentTime;
+    if (gain) {
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(gain.gain.value, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + fadeSeconds);
+    }
+
+    // Mark as fading so onended doesn't fire the natural-end UI callback.
+    this.ptFading.add(slot);
+    try { src.stop(now + fadeSeconds); } catch { /* already scheduled to stop */ }
+  }
+
   stopAllPerTrack(): void {
     for (const slot of [...this.ptSources.keys()]) {
       this.cleanupPtSource(slot);

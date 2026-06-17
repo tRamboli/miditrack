@@ -234,6 +234,13 @@ export function App() {
     }
   }, []);
 
+  const onStopTrack = useCallback((slot: number) => {
+    const engine = engineRef.current!;
+    const aSlot = audioSlot(currentPageIndexRef.current, slot);
+    engine.stopTrack(aSlot, settingsRef.current.fadeOutDuration);
+    setPlayingTracks((prev) => { const n = new Set(prev); n.delete(aSlot); return n; });
+  }, []);
+
   const onToggleCycle = useCallback(() => setCycle((c) => !c), []);
 
   const onTransport = useCallback((action: TransportAction) => {
@@ -307,9 +314,11 @@ export function App() {
 
   const onPlayRef = useRef(onPlay);
   const onToggleTrackPlayRef = useRef(onToggleTrackPlay);
+  const onStopTrackRef = useRef(onStopTrack);
   const onTransportRef = useRef(onTransport);
   useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
   useEffect(() => { onToggleTrackPlayRef.current = onToggleTrackPlay; }, [onToggleTrackPlay]);
+  useEffect(() => { onStopTrackRef.current = onStopTrack; }, [onStopTrack]);
   useEffect(() => { onTransportRef.current = onTransport; }, [onTransport]);
 
   useEffect(() => {
@@ -474,6 +483,7 @@ export function App() {
       },
       toggleBool: (slot, param: BoolParam) => {
         if (param === 'arm') { onToggleTrackPlayRef.current(slot); flashStrip(slot, 'r'); return; }
+        if (param === 'stop') { onStopTrackRef.current(slot); flashStrip(slot, 'm'); return; }
         const pi = currentPageIndexRef.current;
         const cur = pagesRef.current[pi]?.tracks.find((t) => t.slot === slot);
         if (!cur) return;
@@ -678,6 +688,7 @@ export function App() {
         playingTracks={playingTracks}
         onUpdateTrack={updateTrack}
         onToggleTrackPlay={onToggleTrackPlay}
+        onStopTrack={onStopTrack}
         onDropOnStrip={onDropOnStrip}
         onSelectFileForSlot={onSelectFileForSlot}
         onClearFileForSlot={onClearFileForSlot}
