@@ -26,6 +26,12 @@ export function App() {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [cycle, setCycle] = useState(false);
+  const cycleRef = useRef(cycle);
+  useEffect(() => { cycleRef.current = cycle; }, [cycle]);
+  const [playlistVolume, setPlaylistVolume] = useState(1);
+  const playlistVolumeRef = useRef(playlistVolume);
+  useEffect(() => { playlistVolumeRef.current = playlistVolume; }, [playlistVolume]);
+
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [midiDeviceName, setMidiDeviceName] = useState<string | null>(null);
@@ -68,7 +74,15 @@ export function App() {
   useEffect(() => { playlistTrackIdxRef.current = playlistTrackIdx; }, [playlistTrackIdx]);
 
   const [playlistPlaying, setPlaylistPlaying] = useState(false);
+  const playlistPlayingRef = useRef(playlistPlaying);
+  useEffect(() => { playlistPlayingRef.current = playlistPlaying; }, [playlistPlaying]);
+  const [playlistPaused, setPlaylistPaused] = useState(false);
+  const playlistPausedRef = useRef(playlistPaused);
+  useEffect(() => { playlistPausedRef.current = playlistPaused; }, [playlistPaused]);
+  const playingRef = useRef(playing);
+  useEffect(() => { playingRef.current = playing; }, [playing]);
   const [playlistPanelOpen, setPlaylistPanelOpen] = useState(false);
+  const plGenRef = useRef(0); // incremented on every navigation to cancel stale in-flight loads
 
   const [playingTracks, setPlayingTracks] = useState<Set<number>>(new Set());
   const playingTracksRef = useRef(playingTracks);
@@ -142,21 +156,30 @@ export function App() {
 
   // Sequential playlist playback — called recursively via ref
   const playPlaylistFrom = useCallback(async (playlistIdx: number, trackIdx: number) => {
+    const gen = ++plGenRef.current;
     const playlist = playlistsRef.current[playlistIdx];
     const file = playlist?.files[trackIdx];
     if (!file) {
-      setPlaylistPlaying(false);
-      setPlaylistTrackIdx(-1);
+      if (cycleRef.current && playlist && playlist.files.length > 0) {
+        void playPlaylistFromRef.current(playlistIdx, 0);
+      } else {
+        setPlaylistPlaying(false);
+        setPlaylistPaused(false);
+        setPlaylistTrackIdx(-1);
+      }
       return;
     }
     setPlaylistTrackIdx(trackIdx);
     setPlaylistPlaying(true);
+    setPlaylistPaused(false);
     try {
       const ab = await window.miditrack.readFile(file.path);
+      if (gen !== plGenRef.current) return;
       await engineRef.current!.playlistPlay(ab, () => {
         void playPlaylistFromRef.current(playlistIdx, trackIdx + 1);
       });
     } catch {
+      if (gen !== plGenRef.current) return;
       void playPlaylistFromRef.current(playlistIdx, trackIdx + 1);
     }
   }, []);
@@ -164,9 +187,21 @@ export function App() {
   useEffect(() => { playPlaylistFromRef.current = playPlaylistFrom; }, [playPlaylistFrom]);
 
   const onPlay = useCallback(async () => {
+    if (playingRef.current || playingTracksRef.current.size > 0) return;
     if (playlistsRef.current.length > 0) {
-      engineRef.current!.playlistStop();
-      await playPlaylistFromRef.current(selectedPlaylistIdxRef.current, 0);
+      if (playlistPlayingRef.current) {
+        // Currently playing → pause, remembering position
+        engineRef.current!.playlistPause();
+        setPlaylistPlaying(false);
+        setPlaylistPaused(true);
+      } else if (playlistPausedRef.current) {
+        // Paused → resume from remembered position
+        setPlaylistPlaying(true);
+        setPlaylistPaused(false);
+        await engineRef.current!.playlistResume();
+      } else {
+        await playPlaylistFromRef.current(selectedPlaylistIdxRef.current, 0);
+      }
     } else {
       await engineRef.current!.play();
       setPlaying(true);
@@ -174,9 +209,11 @@ export function App() {
   }, []);
 
   const onStop = useCallback(() => {
+    engineRef.current!.playlistStop();
     engineRef.current!.stop();
     setPlaying(false);
     setPlaylistPlaying(false);
+    setPlaylistPaused(false);
     setPlaylistTrackIdx(-1);
     setPlayingTracks(new Set());
   }, []);
@@ -189,6 +226,7 @@ export function App() {
       engine.pauseTrack(aSlot, settingsRef.current.fadeOutDuration);
       setPlayingTracks((prev) => { const n = new Set(prev); n.delete(aSlot); return n; });
     } else {
+      if (playingRef.current || playlistPlayingRef.current || playlistPausedRef.current) return;
       void engine.playTrack(aSlot, () => {
         setPlayingTracks((s) => { const n = new Set(s); n.delete(aSlot); return n; });
       });
@@ -199,30 +237,80 @@ export function App() {
   const onToggleCycle = useCallback(() => setCycle((c) => !c), []);
 
   const onTransport = useCallback((action: TransportAction) => {
+    if (action === 'stop') {
+      ++plGenRef.current;
+      engineRef.current!.playlistStop();
+      engineRef.current!.stop();
+      setPlaying(false);
+      setPlaylistPlaying(false);
+      setPlaylistPaused(false);
+      setPlaylistTrackIdx(-1);
+      setPlayingTracks(new Set());
+    }
     if (action === 'cycle') setCycle((c) => !c);
+    if (action === 'trackPrev') setCurrentPageIndex((i) => Math.max(0, i - 1));
+    if (action === 'trackNext') setCurrentPageIndex((i) => Math.min(pagesRef.current.length - 1, i + 1));
     if (action === 'markerSet') setPlaylistPanelOpen(true);
     if (action === 'markerPrev') {
       const next = Math.max(0, selectedPlaylistIdxRef.current - 1);
       setSelectedPlaylistIdx(next);
+      ++plGenRef.current;
       engineRef.current!.playlistStop();
       setPlaylistPlaying(false);
+      setPlaylistPaused(false);
       setPlaylistTrackIdx(-1);
     }
     if (action === 'markerNext') {
       const next = Math.min(playlistsRef.current.length - 1, selectedPlaylistIdxRef.current + 1);
       setSelectedPlaylistIdx(next);
+      ++plGenRef.current;
       engineRef.current!.playlistStop();
       setPlaylistPlaying(false);
+      setPlaylistPaused(false);
       setPlaylistTrackIdx(-1);
+    }
+    if (action === 'rewind') {
+      if (playingRef.current || playingTracksRef.current.size > 0) return;
+      const playlistIdx = selectedPlaylistIdxRef.current;
+      const playlist = playlistsRef.current[playlistIdx];
+      if (!playlist || playlist.files.length === 0) return;
+      const cur = playlistTrackIdxRef.current;
+      let nextIdx: number;
+      if (cur <= 0) {
+        if (!cycleRef.current) return;
+        nextIdx = playlist.files.length - 1;
+      } else {
+        nextIdx = cur - 1;
+      }
+      engineRef.current!.playlistStop();
+      void playPlaylistFromRef.current(playlistIdx, nextIdx);
+    }
+    if (action === 'forward') {
+      if (playingRef.current || playingTracksRef.current.size > 0) return;
+      const playlistIdx = selectedPlaylistIdxRef.current;
+      const playlist = playlistsRef.current[playlistIdx];
+      if (!playlist || playlist.files.length === 0) return;
+      const cur = playlistTrackIdxRef.current;
+      let nextIdx: number;
+      if (cur === -1) {
+        nextIdx = 0;
+      } else if (cur >= playlist.files.length - 1) {
+        if (!cycleRef.current) return;
+        nextIdx = 0;
+      } else {
+        nextIdx = cur + 1;
+      }
+      engineRef.current!.playlistStop();
+      void playPlaylistFromRef.current(playlistIdx, nextIdx);
     }
   }, []);
 
   const onPlayRef = useRef(onPlay);
-  const onStopRef = useRef(onStop);
   const onToggleTrackPlayRef = useRef(onToggleTrackPlay);
+  const onTransportRef = useRef(onTransport);
   useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
-  useEffect(() => { onStopRef.current = onStop; }, [onStop]);
   useEffect(() => { onToggleTrackPlayRef.current = onToggleTrackPlay; }, [onToggleTrackPlay]);
+  useEffect(() => { onTransportRef.current = onTransport; }, [onTransport]);
 
   useEffect(() => {
     engineRef.current!.setOnEnded(() => setPlaying(false));
@@ -251,16 +339,25 @@ export function App() {
       return next;
     });
     setSelectedPlaylistIdx(prev => Math.max(0, prev >= idx ? prev - 1 : prev));
+    ++plGenRef.current;
     engineRef.current!.playlistStop();
     setPlaylistPlaying(false);
+    setPlaylistPaused(false);
     setPlaylistTrackIdx(-1);
   }, []);
 
   const onSelectPlaylist = useCallback((idx: number) => {
     setSelectedPlaylistIdx(idx);
+    ++plGenRef.current;
     engineRef.current!.playlistStop();
     setPlaylistPlaying(false);
+    setPlaylistPaused(false);
     setPlaylistTrackIdx(-1);
+  }, []);
+
+  const onSelectSong = useCallback((idx: number) => {
+    engineRef.current!.playlistStop();
+    void playPlaylistFromRef.current(selectedPlaylistIdxRef.current, idx);
   }, []);
 
   // Page navigation
@@ -365,6 +462,12 @@ export function App() {
     const host = new MidiHost();
     const router = new MidiRouter(NANOKONTROL2_PRESET, {
       setContinuous: (slot, param: ContinuousParam, v) => {
+        if (slot === 0 && param === 'pan') {
+          // Knob 1 controls playlist volume: pan -1..1 → volume 0..1
+          onPlaylistVolumeChange((v + 1) / 2);
+          flashStrip(slot, 'knob');
+          return;
+        }
         const pi = currentPageIndexRef.current;
         updateTrackRef.current(slot, { [param]: v } as Partial<Track>, pi);
         flashStrip(slot, param === 'volume' ? 'fader' : 'knob');
@@ -379,10 +482,7 @@ export function App() {
       },
       transport: (action: TransportAction) => {
         if (action === 'play') void onPlayRef.current();
-        else if (action === 'stop') onStopRef.current();
-        else if (action === 'cycle') setCycle((c) => !c);
-        else if (action === 'trackPrev') setCurrentPageIndex((i) => Math.max(0, i - 1));
-        else if (action === 'trackNext') setCurrentPageIndex((i) => Math.min(pagesRef.current.length - 1, i + 1));
+        else onTransportRef.current(action);
         flashTransport(action);
       }
     });
@@ -507,6 +607,11 @@ export function App() {
     setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
   }, []);
 
+  const onPlaylistVolumeChange = useCallback((v: number) => {
+    setPlaylistVolume(v);
+    engineRef.current!.setPlaylistVolume(v);
+  }, []);
+
   const allEmpty = currentTracks.every((t) => !t.filePath);
 
   return (
@@ -549,7 +654,9 @@ export function App() {
         midiDeviceName={midiDeviceName}
         playlists={playlists}
         selectedPlaylistIdx={selectedPlaylistIdx}
+        playlistTrackIdx={playlistTrackIdx}
         playlistPlaying={playlistPlaying}
+        onSelectSong={onSelectSong}
         loading={Object.fromEntries(
           Object.entries(loading)
             .filter(([k]) => k.startsWith(`${currentPageIndex}-`))
@@ -574,6 +681,8 @@ export function App() {
         onDropOnStrip={onDropOnStrip}
         onSelectFileForSlot={onSelectFileForSlot}
         onClearFileForSlot={onClearFileForSlot}
+        playlistVolume={playlistVolume}
+        onPlaylistVolumeChange={onPlaylistVolumeChange}
         onPrevPage={onPrevPage}
         onNextPage={onNextPage}
         onAddPage={onAddPage}

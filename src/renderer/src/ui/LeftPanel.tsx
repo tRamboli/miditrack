@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import {
   MdChevronLeft, MdChevronRight, MdAdd, MdRemove,
   MdQueueMusic, MdSkipPrevious, MdSkipNext,
@@ -28,9 +29,11 @@ type Props = {
   onRemovePage: () => void;
   onResetPage: () => void;
   onResetAll: () => void;
-  selectedPlaylist: Playlist | null;
-  playlistCount: number;
+  playlists: Playlist[];
+  selectedPlaylistIdx: number;
+  playlistTrackIdx: number;
   playlistPlaying: boolean;
+  onSelectSong: (idx: number) => void;
 };
 
 export function LeftPanel({
@@ -50,19 +53,31 @@ export function LeftPanel({
   onRemovePage,
   onResetPage,
   onResetAll,
-  selectedPlaylist,
-  playlistCount,
-  playlistPlaying
+  playlists,
+  selectedPlaylistIdx,
+  playlistTrackIdx,
+  playlistPlaying,
+  onSelectSong
 }: Props) {
   const pageLabel = String(currentPageIndex + 1).padStart(2, '0');
   const totalLabel = String(totalPages).padStart(2, '0');
-  const canPrev = currentPageIndex > 0;
-  const canNext = currentPageIndex < totalPages - 1;
   const canAdd = totalPages < 99;
   const canRemove = totalPages > 1;
 
+  const selectedPlaylist = playlists[selectedPlaylistIdx] ?? null;
+
+  const activeSongRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    activeSongRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [playlistTrackIdx]);
+
   return (
     <aside className="left-panel">
+      <div className={`midi-status ${midiDeviceName ? 'is-connected' : ''}`}>
+        <span className="midi-status__dot" />
+        <span className="midi-status__text">{midiDeviceName ?? 'no MIDI device'}</span>
+      </div>
+
       <div className="brand">
         <div className="brand__korg">KORG</div>
         <div className="brand__model">
@@ -116,36 +131,81 @@ export function LeftPanel({
         </div>
       </div>
 
-      <div className="left-panel__row">
-        <div className="left-panel__group left-panel__group--marker">
-          <div className="left-panel__label">PLAYLIST</div>
-          <div className="pad-row">
-            <Pad label={<MdQueueMusic />} size="xs" variant="yellow" flash={flash?.markerSet} onClick={() => onTransport('markerSet')} title="Open Playlists" />
-            <Pad label={<MdSkipPrevious />} size="xs" flash={flash?.markerPrev} onClick={() => onTransport('markerPrev')} title="Prev Playlist" />
-            <Pad label={<MdSkipNext />} size="xs" flash={flash?.markerNext} onClick={() => onTransport('markerNext')} title="Next Playlist" />
-          </div>
-          {playlistCount > 0 && (
-            <div className={`playlist-name ${playlistPlaying ? 'is-playing' : ''}`}>
-              {selectedPlaylist?.name ?? '—'}
-            </div>
+      {/* Inline playlist window */}
+      <div className="pl-inline">
+        <div className="pl-inline__header">
+          <Pad
+            label={<MdSkipPrevious />}
+            size="xs"
+            flash={flash?.markerPrev}
+            onClick={() => onTransport('markerPrev')}
+            title="Prev Playlist"
+          />
+          <span className={`pl-inline__name ${playlistPlaying ? 'is-playing' : ''}`}>
+            {selectedPlaylist?.name ?? (playlists.length === 0 ? 'No playlists' : '—')}
+          </span>
+          <Pad
+            label={<MdSkipNext />}
+            size="xs"
+            flash={flash?.markerNext}
+            onClick={() => onTransport('markerNext')}
+            title="Next Playlist"
+          />
+          <Pad
+            label={<MdQueueMusic />}
+            size="xs"
+            variant="yellow"
+            flash={flash?.markerSet}
+            onClick={() => onTransport('markerSet')}
+            title="Manage Playlists"
+          />
+        </div>
+
+        <div className="pl-inline__songs">
+          {playlists.length === 0 && (
+            <div className="pl-inline__empty">No playlists yet</div>
           )}
+          {selectedPlaylist?.files.length === 0 && (
+            <div className="pl-inline__empty">No audio files</div>
+          )}
+          {selectedPlaylist?.files.map((f, i) => {
+            const isActive = i === playlistTrackIdx;
+            return (
+              <div
+                key={f.path}
+                ref={isActive ? activeSongRef : undefined}
+                className={`pl-inline__song ${isActive ? 'is-playing' : ''}`}
+                onClick={() => onSelectSong(i)}
+              >
+                <span className="pl-inline__song-num">{String(i + 1).padStart(2, '0')}</span>
+                <span className="pl-inline__song-name" title={f.name}>{f.name}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="pl-inline__song-nav">
+          <Pad
+            label={<MdFastRewind />}
+            size="xs"
+            variant="white"
+            flash={flash?.rewind}
+            onClick={() => onTransport('rewind')}
+            title="Prev Song"
+          />
+          <Pad
+            label={<MdFastForward />}
+            size="xs"
+            variant="white"
+            flash={flash?.forward}
+            onClick={() => onTransport('forward')}
+            title="Next Song"
+          />
         </div>
       </div>
 
-      <div className="left-panel__cycle">
-        <Pad
-          label={<MdRepeat />}
-          size="sm"
-          active={cycle}
-          flash={flash?.cycle}
-          onClick={onToggleCycle}
-          title="Cycle (loop)"
-        />
-      </div>
-
       <div className="left-panel__transport">
-        <Pad label={<MdFastRewind />} size="md" variant="white" flash={flash?.rewind} onClick={() => onTransport('rewind')} title="Rewind" />
-        <Pad label={<MdFastForward />} size="md" variant="white" flash={flash?.forward} onClick={() => onTransport('forward')} title="Fast forward" />
+        <Pad label={<MdRepeat />} size="md" variant="purple" active={cycle} flash={flash?.cycle} onClick={onToggleCycle} title="Cycle (loop playlist)" />
         <Pad label={<MdStop />} size="md" variant="red" flash={flash?.stop} onClick={onStop} title="Stop" />
         <Pad label={playing ? <MdPause /> : <MdPlayArrow />} size="md" variant="green" active={playing} flash={flash?.play} onClick={onPlay} title="Play" />
         <Pad label={<MdFiberManualRecord />} size="md" variant="red" flash={flash?.record} onClick={() => onTransport('record')} title="Record (not wired)" />
@@ -157,11 +217,6 @@ export function LeftPanel({
           <Pad label={<MdRestartAlt />} size="xs" variant="red" onClick={onResetPage} title="Clear current page" />
           <Pad label={<MdDeleteSweep />} size="xs" variant="red" onClick={onResetAll} title="Remove all pages" />
         </div>
-      </div>
-
-      <div className={`midi-status ${midiDeviceName ? 'is-connected' : ''}`}>
-        <span className="midi-status__dot" />
-        <span className="midi-status__text">{midiDeviceName ?? 'no MIDI device'}</span>
       </div>
     </aside>
   );

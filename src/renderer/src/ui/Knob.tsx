@@ -1,13 +1,15 @@
 import { useCallback, useRef } from 'react';
 
 type Props = {
-  value: number; // -1..1
+  value: number; // -1..1 (bipolar) or 0..1 (unipolar)
   flash?: boolean;
   onChange: (v: number) => void;
   title?: string;
+  unipolar?: boolean;
+  accent?: 'orange';
 };
 
-export function Knob({ value, flash, onChange, title }: Props) {
+export function Knob({ value, flash, onChange, title, unipolar, accent }: Props) {
   const dragY = useRef<number | null>(null);
   const startVal = useRef(0);
 
@@ -26,10 +28,11 @@ export function Knob({ value, flash, onChange, title }: Props) {
       if (dragY.current == null) return;
       const dy = dragY.current - e.clientY;
       const sensitivity = e.shiftKey ? 400 : 120;
-      const next = Math.max(-1, Math.min(1, startVal.current + dy / sensitivity));
+      const [lo, hi] = unipolar ? [0, 1] : [-1, 1];
+      const next = Math.max(lo, Math.min(hi, startVal.current + dy / sensitivity));
       onChange(next);
     },
-    [onChange]
+    [onChange, unipolar]
   );
 
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -41,13 +44,16 @@ export function Knob({ value, flash, onChange, title }: Props) {
     }
   }, []);
 
-  const onDoubleClick = useCallback(() => onChange(0), [onChange]);
+  const onDoubleClick = useCallback(
+    () => onChange(unipolar ? 1 : 0),
+    [onChange, unipolar]
+  );
 
-  const rotation = value * 135;
+  const rotation = unipolar ? (value * 2 - 1) * 135 : value * 135;
 
   return (
     <div
-      className={`knob ${flash ? 'is-flash' : ''}`}
+      className={`knob${flash ? ' is-flash' : ''}${accent ? ` knob--${accent}` : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

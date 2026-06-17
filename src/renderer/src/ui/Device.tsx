@@ -24,6 +24,8 @@ type Props = {
   onDropOnStrip: (slot: number, files: File[]) => void;
   onSelectFileForSlot: (slot: number) => void;
   onClearFileForSlot: (slot: number) => void;
+  playlistVolume: number;
+  onPlaylistVolumeChange: (v: number) => void;
   onPrevPage: () => void;
   onNextPage: () => void;
   onAddPage: () => void;
@@ -32,7 +34,9 @@ type Props = {
   onResetAll: () => void;
   playlists: Playlist[];
   selectedPlaylistIdx: number;
+  playlistTrackIdx: number;
   playlistPlaying: boolean;
+  onSelectSong: (idx: number) => void;
 };
 
 export function Device(props: Props) {
@@ -55,9 +59,11 @@ export function Device(props: Props) {
         onRemovePage={props.onRemovePage}
         onResetPage={props.onResetPage}
         onResetAll={props.onResetAll}
-        selectedPlaylist={props.playlists[props.selectedPlaylistIdx] ?? null}
-        playlistCount={props.playlists.length}
+        playlists={props.playlists}
+        selectedPlaylistIdx={props.selectedPlaylistIdx}
+        playlistTrackIdx={props.playlistTrackIdx}
         playlistPlaying={props.playlistPlaying}
+        onSelectSong={props.onSelectSong}
       />
       <div className="strips-area">
         <div className="page-title">PAGE {String(props.currentPageIndex + 1).padStart(2, '0')}</div>
@@ -75,6 +81,8 @@ export function Device(props: Props) {
               onDropFiles={(files) => props.onDropOnStrip(t.slot, files)}
               onSelectFile={() => props.onSelectFileForSlot(t.slot)}
               onClearFile={() => props.onClearFileForSlot(t.slot)}
+              playlistVolume={t.slot === 0 ? props.playlistVolume : undefined}
+              onPlaylistVolumeChange={t.slot === 0 ? props.onPlaylistVolumeChange : undefined}
             />
           ))}
         </div>

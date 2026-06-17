@@ -24,6 +24,8 @@ type Props = {
   onDropFiles: (files: File[]) => void;
   onSelectFile: () => void;
   onClearFile: () => void;
+  playlistVolume?: number;
+  onPlaylistVolumeChange?: (v: number) => void;
 };
 
 function scaleStep(h: number): number {
@@ -42,7 +44,7 @@ function tickType(v: number, step: number): 'major' | 'mid' | 'minor' {
   return 'minor';
 }
 
-export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles, onSelectFile, onClearFile }: Props) {
+export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles, onSelectFile, onClearFile, playlistVolume, onPlaylistVolumeChange }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasFile = !!track.filePath;
 
@@ -101,12 +103,26 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
       </div>
 
       <div className="strip__knob">
-        <Knob
-          value={track.pan}
-          flash={flash?.knob}
-          onChange={(v) => onChange({ pan: v })}
-          title={`Pan ${track.pan.toFixed(2)}`}
-        />
+        {onPlaylistVolumeChange !== undefined ? (
+          <>
+            <Knob
+              value={playlistVolume ?? 1}
+              flash={flash?.knob}
+              onChange={onPlaylistVolumeChange}
+              title={`Playlist volume ${Math.round((playlistVolume ?? 1) * 100)}`}
+              unipolar
+              accent="orange"
+            />
+            <div className="strip__knob-label">{Math.round((playlistVolume ?? 1) * 100)}</div>
+          </>
+        ) : (
+          <Knob
+            value={track.pan}
+            flash={flash?.knob}
+            onChange={(v) => onChange({ pan: v })}
+            title={`Pan ${track.pan.toFixed(2)}`}
+          />
+        )}
       </div>
 
       <div className="strip__body">
