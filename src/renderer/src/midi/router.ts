@@ -34,9 +34,12 @@ function rawValue(e: MidiEvent): number {
   return 0;
 }
 
+const CONTINUOUS_THRESHOLD = 2 / 127; // ignore jitter smaller than ~2 MIDI steps
+
 export class MidiRouter {
   private preset: MidiPreset;
   private dispatch: Dispatch;
+  private lastContinuous = new Map<string, number>();
 
   constructor(preset: MidiPreset, dispatch: Dispatch) {
     this.preset = preset;
@@ -71,6 +74,10 @@ export class MidiRouter {
         // 64 is center; map [0..63] → [-1..0) and [64..127] → [0..1]
         mapped = raw <= 64 ? (raw - 64) / 64 : (raw - 64) / 63;
       }
+      const key = `${slot}:${cont}`;
+      const last = this.lastContinuous.get(key);
+      if (last !== undefined && Math.abs(mapped - last) < CONTINUOUS_THRESHOLD) return;
+      this.lastContinuous.set(key, mapped);
       this.dispatch.setContinuous(slot, cont, mapped);
       return;
     }

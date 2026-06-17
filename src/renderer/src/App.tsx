@@ -405,10 +405,14 @@ export function App() {
   const loadIntoSlot = useCallback(async (pageIndex: number, slot: number, file: File) => {
     const engine = engineRef.current!;
     const key = loadKey(pageIndex, slot);
+    const aSlot = audioSlot(pageIndex, slot);
+    if (playingTracksRef.current.has(aSlot)) {
+      engine.pauseTrack(aSlot, 0);
+      setPlayingTracks((prev) => { const n = new Set(prev); n.delete(aSlot); return n; });
+    }
     setLoading((l) => ({ ...l, [key]: true }));
     setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
     try {
-      const aSlot = audioSlot(pageIndex, slot);
       await engine.loadFile(aSlot, file);
       setPages((prev) => {
         const next = [...prev];
