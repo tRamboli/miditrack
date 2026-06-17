@@ -5,7 +5,9 @@
       "Bash(npm install *)",
       "Bash(npx tsc *)",
       "Bash(npm run *)",
-      "Skill(run)"
+      "Skill(run)",
+      "Bash(tmux new-session *)",
+      "Bash(tmux send-keys *)"
     ]
   }
 }

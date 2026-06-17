@@ -477,6 +477,32 @@ export function App() {
     await loadIntoSlot(currentPageIndexRef.current, slot, file);
   }, [loadIntoSlot]);
 
+  const onClearFileForSlot = useCallback((slot: number) => {
+    const pi = currentPageIndexRef.current;
+    const engine = engineRef.current!;
+    const aSlot = audioSlot(pi, slot);
+    if (playingTracksRef.current.has(aSlot)) {
+      engine.pauseTrack(aSlot, 0);
+      setPlayingTracks((prev) => { const n = new Set(prev); n.delete(aSlot); return n; });
+    }
+    engine.unload(aSlot);
+    setPages((prev) => {
+      const next = [...prev];
+      const page = next[pi];
+      if (!page) return prev;
+      next[pi] = {
+        ...page,
+        tracks: page.tracks.map((t) =>
+          t.slot === slot ? { ...t, name: '', filePath: '' } : t
+        )
+      };
+      return next;
+    });
+    const key = loadKey(pi, slot);
+    setLoading((l) => { const n = { ...l }; delete n[key]; return n; });
+    setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
+  }, []);
+
   const allEmpty = currentTracks.every((t) => !t.filePath);
 
   return (
@@ -543,6 +569,7 @@ export function App() {
         onToggleTrackPlay={onToggleTrackPlay}
         onDropOnStrip={onDropOnStrip}
         onSelectFileForSlot={onSelectFileForSlot}
+        onClearFileForSlot={onClearFileForSlot}
         onPrevPage={onPrevPage}
         onNextPage={onNextPage}
         onAddPage={onAddPage}

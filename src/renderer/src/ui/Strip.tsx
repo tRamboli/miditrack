@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MdLoop, MdAdd, MdPlayArrow, MdPause } from 'react-icons/md';
+import { MdLoop, MdAdd, MdPlayArrow, MdPause, MdClose } from 'react-icons/md';
 import { Track } from '../types';
 import { Knob } from './Knob';
 import { Fader } from './Fader';
@@ -23,6 +23,7 @@ type Props = {
   onTogglePlay: () => void;
   onDropFiles: (files: File[]) => void;
   onSelectFile: () => void;
+  onClearFile: () => void;
 };
 
 function scaleStep(h: number): number {
@@ -41,7 +42,7 @@ function tickType(v: number, step: number): 'major' | 'mid' | 'minor' {
   return 'minor';
 }
 
-export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles, onSelectFile }: Props) {
+export function Strip({ track, trackPlaying, loading, error, flash, onChange, onTogglePlay, onDropFiles, onSelectFile, onClearFile }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasFile = !!track.filePath;
 
@@ -88,6 +89,15 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
         <div className="strip__screen-name">
           {loading ? 'decoding…' : error ? 'error' : track.name || 'empty'}
         </div>
+        {hasFile && (
+          <button
+            className="strip__screen-clear"
+            title="Remove audio file"
+            onClick={(e) => { e.stopPropagation(); onClearFile(); }}
+          >
+            <MdClose />
+          </button>
+        )}
       </div>
 
       <div className="strip__knob">
