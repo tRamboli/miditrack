@@ -19,6 +19,10 @@ function isAudioFile(name: string): boolean {
   return AUDIO_EXT.some((ext) => lower.endsWith(ext));
 }
 
+function basename(dirPath: string): string {
+  return dirPath.split(/[/\\]/).filter(Boolean).pop() ?? dirPath;
+}
+
 type StripCtrl = keyof StripFlash;
 
 export function App() {
@@ -56,7 +60,8 @@ export function App() {
   const [playlists, setPlaylists] = useState<Playlist[]>(() => {
     try {
       const raw = localStorage.getItem(PLAYLISTS_STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const parsed: Playlist[] = raw ? JSON.parse(raw) : [];
+      return parsed.map((pl) => ({ ...pl, name: basename(pl.dirPath) }));
     } catch { return []; }
   });
   const playlistsRef = useRef(playlists);
@@ -336,7 +341,7 @@ export function App() {
     const dirPath = await window.miditrack.selectDirectory();
     if (!dirPath) return;
     const files = await window.miditrack.readAudioFiles(dirPath);
-    const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
+    const name = basename(dirPath);
     const playlist: Playlist = { id: `pl-${Date.now()}`, name, dirPath, files };
     setPlaylists(prev => [...prev, playlist]);
     setSelectedPlaylistIdx(prev => prev); // keep current
