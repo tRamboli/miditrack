@@ -7,7 +7,8 @@
       "Bash(npm run *)",
       "Skill(run)",
       "Bash(tmux new-session *)",
-      "Bash(tmux send-keys *)"
+      "Bash(tmux send-keys *)",
+      "PowerShell(npm run *)"
     ]
   }
 }
