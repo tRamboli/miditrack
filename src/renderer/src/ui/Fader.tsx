@@ -63,6 +63,8 @@ export function Fader({ value, flash, onChange }: Props) {
       onDoubleClick={onDoubleClick}
     >
       <div className="fader__rail">
+        <div className="fader__level" />
+        <div className="fader__level-cover" style={{ height: `${(1 - value) * 100}%` }} />
         <div className="fader__rail-line" />
       </div>
       <div className="fader__cap" style={{ top: `calc(${capTopPercent}% - 24px)` }}>

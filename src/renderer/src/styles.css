@@ -846,6 +846,7 @@ html, body, #root {
     linear-gradient(to right, #0c0c0e 0%, var(--rail-bg) 50%, #0c0c0e 100%);
   border: 1px solid var(--rail-edge);
   box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
 }
 .fader__rail-line {
   position: absolute;
@@ -856,6 +857,20 @@ html, body, #root {
   transform: translateX(-50%);
   background:
     repeating-linear-gradient(to bottom, var(--rail-line) 0 2px, transparent 2px 8px);
+}
+.fader__level {
+  position: absolute;
+  inset: 1px;
+  border-radius: 3px;
+  background: linear-gradient(to top, #2ecc40 0%, #2ecc40 55%, #ffd23f 75%, #ff4136 92%, #ff4136 100%);
+}
+.fader__level-cover {
+  position: absolute;
+  top: 0;
+  left: 1px;
+  right: 1px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(to right, #0c0c0e 0%, var(--rail-bg) 50%, #0c0c0e 100%);
 }
 .fader__cap {
   position: absolute;
