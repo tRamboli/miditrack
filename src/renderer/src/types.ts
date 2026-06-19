@@ -41,6 +41,8 @@ export type Page = {
 
 export const TRACK_COUNT = 8;
 export const MAX_PAGES = 99;
+export const PAGES_STORAGE_KEY = 'miditrack-pages';
+export const CURRENT_PAGE_STORAGE_KEY = 'miditrack-current-page';
 
 export function emptyTrack(pageId: string, slot: number): Track {
   return {

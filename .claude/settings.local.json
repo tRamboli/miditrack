@@ -8,7 +8,9 @@
       "Skill(run)",
       "Bash(tmux new-session *)",
       "Bash(tmux send-keys *)",
-      "PowerShell(npm run *)"
+      "PowerShell(npm run *)",
+      "Bash(node -e \"console.log\\(require.resolve\\('playwright'\\)\\)\")",
+      "Bash(echo \"started with pid $!\")"
     ]
   }
 }

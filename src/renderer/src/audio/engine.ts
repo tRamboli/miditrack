@@ -55,8 +55,11 @@ export class AudioEngine {
   }
 
   async loadFile(slot: number, file: File): Promise<{ duration: number }> {
-    const ab = await file.arrayBuffer();
-    const buffer = await this.ctx.decodeAudioData(ab);
+    return this.loadArrayBuffer(slot, await file.arrayBuffer());
+  }
+
+  async loadArrayBuffer(slot: number, arrayBuffer: ArrayBuffer): Promise<{ duration: number }> {
+    const buffer = await this.ctx.decodeAudioData(arrayBuffer);
     this.buffers.set(slot, buffer);
     if (!this.params.has(slot)) {
       this.params.set(slot, { ...DEFAULT_PARAMS });

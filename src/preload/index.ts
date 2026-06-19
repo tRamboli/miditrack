@@ -1,12 +1,13 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { version } from '../../package.json';
 
 const AUDIO_EXTS = new Set(['.wav', '.mp3', '.m4a', '.flac', '.ogg', '.aac', '.aiff']);
 
 contextBridge.exposeInMainWorld('miditrack', {
   platform: process.platform,
-  version: '0.1.0',
+  version,
 
   onOpenSettings: (cb: () => void) => {
     ipcRenderer.on('open-settings', cb);
@@ -30,5 +31,7 @@ contextBridge.exposeInMainWorld('miditrack', {
   readFile: async (filePath: string): Promise<ArrayBuffer> => {
     const buf = await fs.readFile(filePath);
     return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
-  }
+  },
+
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file)
 });

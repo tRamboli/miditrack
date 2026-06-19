@@ -54,6 +54,7 @@ export function Settings({ settings, onSave, onClose }: Props) {
           <button className="settings-btn settings-btn--cancel" onClick={onClose}>Cancel</button>
           <button className="settings-btn settings-btn--save" onClick={handleSave}>Save</button>
         </div>
+        <div className="settings-version">v{window.miditrack.version}</div>
       </div>
     </div>
   );

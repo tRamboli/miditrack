@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TRACK_COUNT, Track, Page, MAX_PAGES, newPage, audioSlot, AppSettings, DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY, Playlist, PLAYLISTS_STORAGE_KEY } from './types';
+import { TRACK_COUNT, Track, Page, MAX_PAGES, newPage, audioSlot, AppSettings, DEFAULT_SETTINGS, SETTINGS_STORAGE_KEY, Playlist, PLAYLISTS_STORAGE_KEY, PAGES_STORAGE_KEY, CURRENT_PAGE_STORAGE_KEY } from './types';
 import { Device } from './ui/Device';
 import { Settings } from './ui/Settings';
 import { PlaylistPanel } from './ui/PlaylistPanel';
@@ -26,8 +26,19 @@ function basename(dirPath: string): string {
 type StripCtrl = keyof StripFlash;
 
 export function App() {
-  const [pages, setPages] = useState<Page[]>(() => [newPage(0)]);
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [pages, setPages] = useState<Page[]>(() => {
+    try {
+      const raw = localStorage.getItem(PAGES_STORAGE_KEY);
+      const parsed: Page[] = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : [newPage(0)];
+    } catch { return [newPage(0)]; }
+  });
+  const [currentPageIndex, setCurrentPageIndex] = useState(() => {
+    try {
+      const raw = localStorage.getItem(CURRENT_PAGE_STORAGE_KEY);
+      return raw ? Math.max(0, parseInt(raw, 10) || 0) : 0;
+    } catch { return 0; }
+  });
   const [playing, setPlaying] = useState(false);
   const [cycle, setCycle] = useState(false);
   const cycleRef = useRef(cycle);
@@ -100,14 +111,42 @@ export function App() {
 
   // Stable refs so async/MIDI callbacks always see latest values
   const pagesRef = useRef(pages);
-  useEffect(() => { pagesRef.current = pages; }, [pages]);
+  useEffect(() => {
+    pagesRef.current = pages;
+    localStorage.setItem(PAGES_STORAGE_KEY, JSON.stringify(pages));
+  }, [pages]);
   const currentPageIndexRef = useRef(currentPageIndex);
-  useEffect(() => { currentPageIndexRef.current = currentPageIndex; }, [currentPageIndex]);
+  useEffect(() => {
+    currentPageIndexRef.current = currentPageIndex;
+    localStorage.setItem(CURRENT_PAGE_STORAGE_KEY, String(currentPageIndex));
+  }, [currentPageIndex]);
 
   const currentTracks = pages[currentPageIndex]?.tracks ?? [];
 
   // Loading/error keys are "{pageIndex}-{slot}"
   const loadKey = (pi: number, slot: number) => `${pi}-${slot}`;
+
+  // Restore audio buffers for tracks loaded from persisted pages, once on mount.
+  useEffect(() => {
+    const engine = engineRef.current!;
+    pagesRef.current.forEach((page, pi) => {
+      page.tracks.forEach((t) => {
+        if (!t.filePath) return;
+        const aSlot = audioSlot(pi, t.slot);
+        const key = loadKey(pi, t.slot);
+        void (async () => {
+          try {
+            const ab = await window.miditrack.readFile(t.filePath);
+            await engine.loadArrayBuffer(aSlot, ab);
+            engine.setParams(aSlot, { volume: t.volume, pan: t.pan, mute: t.mute, solo: t.solo, loop: t.loop });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : 'reload failed';
+            setErrors((e) => ({ ...e, [key]: msg }));
+          }
+        })();
+      });
+    });
+  }, []);
 
   const flashStrip = useCallback((slot: number, ctrl: StripCtrl) => {
     setStripFlash((prev) => ({ ...prev, [slot]: { ...(prev[slot] || {}), [ctrl]: true } }));
@@ -529,6 +568,7 @@ export function App() {
     setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
     try {
       await engine.loadFile(aSlot, file);
+      const filePath = window.miditrack.getPathForFile(file);
       setPages((prev) => {
         const next = [...prev];
         const page = next[pageIndex];
@@ -537,7 +577,7 @@ export function App() {
           ...page,
           tracks: page.tracks.map((t) =>
             t.slot === slot
-              ? { ...t, name: file.name, filePath: (file as unknown as { path?: string }).path ?? file.name }
+              ? { ...t, name: file.name, filePath }
               : t
           )
         };

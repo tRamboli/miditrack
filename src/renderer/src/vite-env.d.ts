@@ -9,5 +9,6 @@ interface Window {
     selectAudioFile: () => Promise<string | null>;
     readAudioFiles: (dirPath: string) => Promise<{ name: string; path: string }[]>;
     readFile: (filePath: string) => Promise<ArrayBuffer>;
+    getPathForFile: (file: File) => string;
   };
 }
