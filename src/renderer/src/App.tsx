@@ -556,7 +556,7 @@ export function App() {
     return () => { offEvent?.(); offDevices?.(); };
   }, [flashStrip, flashTransport]);
 
-  const loadIntoSlot = useCallback(async (pageIndex: number, slot: number, file: File) => {
+  const loadIntoSlot = useCallback(async (pageIndex: number, slot: number, file: File, knownPath?: string) => {
     const engine = engineRef.current!;
     const key = loadKey(pageIndex, slot);
     const aSlot = audioSlot(pageIndex, slot);
@@ -568,7 +568,9 @@ export function App() {
     setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
     try {
       await engine.loadFile(aSlot, file);
-      const filePath = window.miditrack.getPathForFile(file);
+      // For real OS files (drag-and-drop) we resolve the path from the File;
+      // synthetic Files (e.g. the + picker) have no path, so use knownPath.
+      const filePath = knownPath ?? window.miditrack.getPathForFile(file);
       setPages((prev) => {
         const next = [...prev];
         const page = next[pageIndex];
@@ -633,7 +635,7 @@ export function App() {
     const ab = await window.miditrack.readFile(filePath);
     const name = basename(filePath);
     const file = new File([ab], name);
-    await loadIntoSlot(currentPageIndexRef.current, slot, file);
+    await loadIntoSlot(currentPageIndexRef.current, slot, file, filePath);
   }, [loadIntoSlot]);
 
   const onClearFileForSlot = useCallback((slot: number) => {
