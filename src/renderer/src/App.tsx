@@ -631,7 +631,7 @@ export function App() {
     const filePath = await window.miditrack.selectAudioFile();
     if (!filePath) return;
     const ab = await window.miditrack.readFile(filePath);
-    const name = filePath.split('/').pop() ?? filePath.split('\\').pop() ?? filePath;
+    const name = basename(filePath);
     const file = new File([ab], name);
     await loadIntoSlot(currentPageIndexRef.current, slot, file);
   }, [loadIntoSlot]);
