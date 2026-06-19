@@ -34,7 +34,7 @@ function rawValue(e: MidiEvent): number {
   return 0;
 }
 
-const CONTINUOUS_THRESHOLD = 2 / 127; // ignore jitter smaller than ~2 MIDI steps
+const CONTINUOUS_THRESHOLD = 4 / 127; // ignore jitter smaller than ~4 MIDI steps
 
 export class MidiRouter {
   private preset: MidiPreset;
