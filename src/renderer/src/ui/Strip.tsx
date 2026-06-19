@@ -179,7 +179,6 @@ export function Strip({ track, trackPlaying, loading, error, flash, onChange, on
                   {type === 'major' && (
                     <span className={isBold ? 'fader-scale__label--bold' : ''}>{v}</span>
                   )}
-                  <div className="fader-scale__line" />
                 </div>
               );
             })}

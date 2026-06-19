@@ -733,15 +733,6 @@ html, body, #root {
   color: rgba(255, 255, 255, 0.7) !important;
   font-weight: 700;
 }
-.fader-scale__line {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.22);
-  flex-shrink: 0;
-}
-.fader-scale__tick--major .fader-scale__line { width: 8px; }
-.fader-scale__tick--mid .fader-scale__line   { width: 5px; }
-.fader-scale__tick--minor .fader-scale__line { width: 3px; }
-
 .strip__fader-col .fader {
   flex: 1;
   min-width: 0;
